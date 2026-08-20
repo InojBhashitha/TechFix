@@ -3,65 +3,27 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background"
-    android:padding="24dp">
+    android:background="@color/background">
 
-    <ImageView
-        android:id="@+id/ivLogo"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:layout_marginTop="48dp"
-        android:src="@drawable/ic_techfix_logo"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+    <!-- Fragment Container -->
+    <FrameLayout
+        android:id="@+id/fragmentContainer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@id/bottomNav"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <TextView
-        android:id="@+id/tvWelcome"
+    <!-- Bottom Navigation Bar -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNav"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="Welcome!"
-        android:textAlignment="center"
-        android:textColor="@color/text_primary"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        app:layout_constraintTop_toBottomOf="@id/ivLogo" />
-
-    <TextView
-        android:id="@+id/tvRole"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Customer"
-        android:textAlignment="center"
-        android:textColor="@color/text_secondary"
-        android:textSize="14sp"
-        app:layout_constraintTop_toBottomOf="@id/tvWelcome" />
-
-    <TextView
-        android:id="@+id/tvPlaceholder"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="48dp"
-        android:text="Customer dashboard will be built in feature/customer-ui branch.\n\nAuthentication is working correctly!"
-        android:textAlignment="center"
-        android:textColor="@color/text_muted"
-        android:textSize="15sp"
-        android:lineSpacingExtra="4dp"
-        app:layout_constraintTop_toBottomOf="@id/tvRole" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnLogout"
-        style="@style/Widget.Material3.Button.OutlinedButton"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:layout_marginBottom="24dp"
-        android:text="@string/btn_logout"
-        android:textAllCaps="false"
-        android:textColor="@color/status_cancelled"
-        app:cornerRadius="12dp"
-        app:strokeColor="@color/status_cancelled"
+        android:background="@color/surface"
+        app:elevation="8dp"
+        app:itemIconTint="@color/bottom_nav_colors"
+        app:itemTextColor="@color/bottom_nav_colors"
+        app:labelVisibilityMode="labeled"
+        app:menu="@menu/menu_bottom_nav_customer"
         app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
