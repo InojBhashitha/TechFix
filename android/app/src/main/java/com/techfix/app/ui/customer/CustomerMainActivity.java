@@ -1,46 +1,61 @@
 package com.techfix.app.ui.customer;
 
-import android.content.Intent;
 import android.os.Bundle;
-import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
 
-import com.google.android.material.button.MaterialButton;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.techfix.app.R;
-import com.techfix.app.data.remote.ApiClient;
-import com.techfix.app.ui.auth.LoginActivity;
-import com.techfix.app.utils.SessionManager;
 
-/**
- * Customer main dashboard - placeholder for now.
- * Will be fully implemented in the feature/customer-ui branch.
- */
 public class CustomerMainActivity extends AppCompatActivity {
 
-    private SessionManager sessionManager;
+    private BottomNavigationView bottomNav;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_customer_main);
 
-        sessionManager = new SessionManager(this);
+        bottomNav = findViewById(R.id.bottomNav);
 
-        TextView tvWelcome = findViewById(R.id.tvWelcome);
-        TextView tvRole = findViewById(R.id.tvRole);
-        MaterialButton btnLogout = findViewById(R.id.btnLogout);
+        // Set default fragment
+        if (savedInstanceState == null) {
+            loadFragment(new HomeFragment());
+        }
 
-        tvWelcome.setText("Welcome, " + sessionManager.getFullName() + "!");
-        tvRole.setText("Role: " + sessionManager.getRole() + " | " + sessionManager.getEmail());
+        bottomNav.setOnItemSelectedListener(item -> {
+            int itemId = item.getItemId();
+            Fragment selectedFragment = null;
 
-        btnLogout.setOnClickListener(v -> {
-            sessionManager.logout();
-            ApiClient.setAuthToken(null);
-            Intent intent = new Intent(this, LoginActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            finish();
+            if (itemId == R.id.nav_home) {
+                selectedFragment = new HomeFragment();
+            } else if (itemId == R.id.nav_services) {
+                selectedFragment = new ServicesFragment();
+            } else if (itemId == R.id.nav_bookings) {
+                selectedFragment = new BookingsFragment();
+            } else if (itemId == R.id.nav_profile) {
+                selectedFragment = new ProfileFragment();
+            }
+
+            if (selectedFragment != null) {
+                loadFragment(selectedFragment);
+                return true;
+            }
+            return false;
         });
+    }
+
+    public void switchToTab(int menuItemId) {
+        if (bottomNav != null) {
+            bottomNav.setSelectedItemId(menuItemId);
+        }
+    }
+
+    private void loadFragment(Fragment fragment) {
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragmentContainer, fragment)
+                .commit();
     }
 }
