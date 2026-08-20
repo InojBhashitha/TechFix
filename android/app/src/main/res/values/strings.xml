@@ -1,0 +1,46 @@
+<resources>
+    <string name="app_name">TechFix</string>
+    <string name="app_tagline">Smart Device Repair Management</string>
+
+    <!-- Auth -->
+    <string name="title_login">Welcome Back</string>
+    <string name="subtitle_login">Sign in to manage and track your repairs</string>
+    <string name="title_register">Create TechFix Account</string>
+    <string name="subtitle_register">Join TechFix for quick, reliable device repairs</string>
+    <string name="label_full_name">Full Name</string>
+    <string name="label_email">Email Address</string>
+    <string name="label_phone">Phone Number</string>
+    <string name="label_password">Password</string>
+    <string name="label_confirm_password">Confirm Password</string>
+    <string name="btn_login">Sign In</string>
+    <string name="btn_register">Create Account</string>
+    <string name="prompt_have_account">Already have an account? Sign In</string>
+    <string name="prompt_no_account">Don\'t have an account? Register</string>
+    <string name="err_invalid_email">Please enter a valid email address</string>
+    <string name="err_empty_field">This field is required</string>
+    <string name="err_password_short">Password must be at least 6 characters</string>
+
+    <!-- Navigation Titles -->
+    <string name="nav_home">Home</string>
+    <string name="nav_services">Services</string>
+    <string name="nav_bookings">My Repairs</string>
+    <string name="nav_branches">Branches</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Staff Navigation -->
+    <string name="nav_staff_queue">Repair Queue</string>
+    <string name="nav_staff_inventory">Inventory</string>
+    <string name="nav_staff_technicians">Technicians</string>
+
+    <!-- Actions -->
+    <string name="btn_book_repair">Book a Repair</string>
+    <string name="btn_track_repair">Track Status</string>
+    <string name="btn_pay_now">Pay Now</string>
+    <string name="btn_update_status">Update Status</string>
+    <string name="btn_logout">Log Out</string>
+
+    <!-- Branches -->
+    <string name="branch_colombo">TechFix Colombo Branch</string>
+    <string name="branch_galle">TechFix Galle Branch</string>
+    <string name="label_distance">Distance: %1$.1f km</string>
+</resources>
