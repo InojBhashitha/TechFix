@@ -1,0 +1,28 @@
+# Java & Maven
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# Gradle & Android
+.gradle/
+build/
+app/build/
+*.apk
+*.aab
+*.ap_
+local.properties
+.cxx/
+captures/
+.externalNativeBuild/
+
+# IDE files
+.idea/
+*.iml
+.DS_Store
+.vscode/
+
+# Uploads directory
+uploads/

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand Primary Colors -->
+    <color name="primary">#0F62FE</color>
+    <color name="primary_dark">#0043CE</color>
+    <color name="primary_light">#D0E2FF</color>
+    <color name="primary_container">#EDF5FF</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="on_primary_container">#002D9C</color>
+
+    <!-- Secondary / Accent Colors -->
+    <color name="secondary">#007D79</color>
+    <color name="secondary_container">#D9FBFB</color>
+    <color name="on_secondary">#FFFFFF</color>
+    <color name="accent_cyan">#1192E8</color>
+    <color name="accent_purple">#8A3FFC</color>
+
+    <!-- Neutral & Backgrounds -->
+    <color name="background">#F8FAFC</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_variant">#F1F5F9</color>
+    <color name="surface_elevated">#FFFFFF</color>
+    <color name="text_primary">#0F172A</color>
+    <color name="text_secondary">#475569</color>
+    <color name="text_muted">#94A3B8</color>
+    <color name="divider">#E2E8F0</color>
+    <color name="border">#CBD5E1</color>
+
+    <!-- Status & Semantic Colors -->
+    <color name="status_submitted">#0F62FE</color>
+    <color name="status_submitted_bg">#EDF5FF</color>
+    <color name="status_in_progress">#D97706</color>
+    <color name="status_in_progress_bg">#FEF3C7</color>
+    <color name="status_ready">#059669</color>
+    <color name="status_ready_bg">#D1FAE5</color>
+    <color name="status_completed">#10B981</color>
+    <color name="status_completed_bg">#ECFDF5</color>
+    <color name="status_cancelled">#EF4444</color>
+    <color name="status_cancelled_bg">#FEE2E2</color>
+
+    <!-- Generic Constants -->
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="transparent">#00000000</color>
+</resources>
