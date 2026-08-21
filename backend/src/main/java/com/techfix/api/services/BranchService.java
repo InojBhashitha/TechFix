@@ -6,9 +6,11 @@ import com.techfix.api.dto.BranchRecommendationResponseDto;
 import com.techfix.api.dto.BranchRecommendationResponseDto.BranchDetailDto;
 import com.techfix.api.entities.Branch;
 import com.techfix.api.entities.BranchInventory;
+import com.techfix.api.entities.RepairService;
 import com.techfix.api.entities.Technician;
 import com.techfix.api.repositories.BranchInventoryRepository;
 import com.techfix.api.repositories.BranchRepository;
+import com.techfix.api.repositories.RepairServiceRepository;
 import com.techfix.api.repositories.TechnicianRepository;
 import org.springframework.stereotype.Service;
 
@@ -24,13 +26,16 @@ public class BranchService {
     private final BranchRepository branchRepository;
     private final BranchInventoryRepository inventoryRepository;
     private final TechnicianRepository technicianRepository;
+    private final RepairServiceRepository serviceRepository;
 
     public BranchService(BranchRepository branchRepository,
                          BranchInventoryRepository inventoryRepository,
-                         TechnicianRepository technicianRepository) {
+                         TechnicianRepository technicianRepository,
+                         RepairServiceRepository serviceRepository) {
         this.branchRepository = branchRepository;
         this.inventoryRepository = inventoryRepository;
         this.technicianRepository = technicianRepository;
+        this.serviceRepository = serviceRepository;
     }
 
     public List<BranchDto> getAllActiveBranches() {
@@ -54,14 +59,36 @@ public class BranchService {
         // 1. Determine if a spare part is required
         Long requiredPartId = determineRequiredSparePartId(serviceId, brand, model);
 
+        // 2. Fetch repair service category details for technician capability check
+        String categoryName = null;
+        if (serviceId != null) {
+            Optional<RepairService> serviceOpt = serviceRepository.findById(serviceId);
+            if (serviceOpt.isPresent()) {
+                categoryName = serviceOpt.get().getCategory().getName();
+            }
+        }
+
         List<BranchDetailDto> details = new ArrayList<>();
         for (Branch b : branches) {
             // Calculate Haversine distance
             double distance = calculateHaversineDistance(customerLat, customerLng, b.getLatitude(), b.getLongitude());
 
-            // Check technician availability
+            // Check technician availability and capability
             List<Technician> availableTechs = technicianRepository.findByBranchIdAndIsAvailableTrue(b.getId());
-            boolean isTechAvailable = !availableTechs.isEmpty();
+            boolean isTechAvailable = false;
+            
+            if (!availableTechs.isEmpty()) {
+                if (categoryName != null) {
+                    for (Technician tech : availableTechs) {
+                        if (isTechnicianCompatible(tech.getSpecialization(), categoryName)) {
+                            isTechAvailable = true;
+                            break;
+                        }
+                    }
+                } else {
+                    isTechAvailable = true;
+                }
+            }
 
             // Check spare part stock availability
             boolean isPartAvailable = true;
@@ -76,7 +103,7 @@ public class BranchService {
             details.add(new BranchDetailDto(new BranchDto(b), distance, isTechAvailable, isPartAvailable, openingHours));
         }
 
-        // 2. Routing Decision Tree
+        // 3. Routing Decision Tree
         // Filter those where BOTH parts and technicians are available
         List<BranchDetailDto> fullyEligible = details.stream()
                 .filter(d -> d.getIsTechnicianAvailable() && d.getIsPartAvailable())
@@ -118,6 +145,30 @@ public class BranchService {
                 reason,
                 details
         );
+    }
+
+    /**
+     * Helper to verify if a technician's specialization supports a given repair category name.
+     */
+    private boolean isTechnicianCompatible(String specialization, String categoryName) {
+        if (specialization == null || categoryName == null) {
+            return true;
+        }
+        String specLower = specialization.toLowerCase();
+        String catLower = categoryName.toLowerCase();
+
+        if (catLower.contains("mobile") || catLower.contains("phone") || catLower.contains("tablet")) {
+            return specLower.contains("mobile") || specLower.contains("phone") || specLower.contains("tablet") 
+                    || specLower.contains("display") || specLower.contains("hardware");
+        }
+        if (catLower.contains("laptop")) {
+            return specLower.contains("laptop") || specLower.contains("screen") || specLower.contains("motherboard") 
+                    || specLower.contains("thermal") || specLower.contains("micro-soldering");
+        }
+        if (catLower.contains("desktop") || catLower.contains("computer")) {
+            return specLower.contains("desktop") || specLower.contains("pc") || specLower.contains("power");
+        }
+        return true;
     }
 
     /**
