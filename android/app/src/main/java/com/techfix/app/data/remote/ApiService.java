@@ -2,6 +2,8 @@ package com.techfix.app.data.remote;
 
 import com.techfix.app.data.remote.dto.ApiResponse;
 import com.techfix.app.data.remote.dto.AuthResponse;
+import com.techfix.app.data.remote.dto.BookingRequestDto;
+import com.techfix.app.data.remote.dto.BookingResponseDto;
 import com.techfix.app.data.remote.dto.DeviceCategoryDto;
 import com.techfix.app.data.remote.dto.LoginRequest;
 import com.techfix.app.data.remote.dto.RegisterRequest;
@@ -38,4 +40,14 @@ public interface ApiService {
 
     @GET("api/services/{id}")
     Call<ApiResponse<RepairServiceDto>> getServiceById(@Path("id") Long id);
+
+    // ─── Repair Bookings ─────────────────────────────────────────
+    @POST("api/bookings")
+    Call<ApiResponse<BookingResponseDto>> createBooking(@Body BookingRequestDto request);
+
+    @GET("api/bookings/my-bookings")
+    Call<ApiResponse<List<BookingResponseDto>>> getMyBookings();
+
+    @GET("api/bookings/{reference}")
+    Call<ApiResponse<BookingResponseDto>> getBookingByReference(@Path("reference") String reference);
 }
