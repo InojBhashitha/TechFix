@@ -4,6 +4,8 @@ import com.techfix.app.data.remote.dto.ApiResponse;
 import com.techfix.app.data.remote.dto.AuthResponse;
 import com.techfix.app.data.remote.dto.BookingRequestDto;
 import com.techfix.app.data.remote.dto.BookingResponseDto;
+import com.techfix.app.data.remote.dto.BranchRecommendationRequestDto;
+import com.techfix.app.data.remote.dto.BranchRecommendationResponseDto;
 import com.techfix.app.data.remote.dto.DeviceCategoryDto;
 import com.techfix.app.data.remote.dto.LoginRequest;
 import com.techfix.app.data.remote.dto.RegisterRequest;
@@ -50,4 +52,9 @@ public interface ApiService {
 
     @GET("api/bookings/{reference}")
     Call<ApiResponse<BookingResponseDto>> getBookingByReference(@Path("reference") String reference);
+
+    // ─── Branch Recommendations ──────────────────────────────────
+    @POST("api/branches/recommend-branch")
+    Call<ApiResponse<BranchRecommendationResponseDto>> recommendBranch(@Body BranchRecommendationRequestDto request);
 }
+

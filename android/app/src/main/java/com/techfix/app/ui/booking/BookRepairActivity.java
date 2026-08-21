@@ -1,8 +1,10 @@
 package com.techfix.app.ui.booking;
 
+import android.Manifest;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -16,9 +18,14 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
@@ -29,6 +36,8 @@ import com.techfix.app.data.remote.ApiService;
 import com.techfix.app.data.remote.dto.ApiResponse;
 import com.techfix.app.data.remote.dto.BookingRequestDto;
 import com.techfix.app.data.remote.dto.BookingResponseDto;
+import com.techfix.app.data.remote.dto.BranchRecommendationRequestDto;
+import com.techfix.app.data.remote.dto.BranchRecommendationResponseDto;
 import com.techfix.app.data.remote.dto.DeviceCategoryDto;
 import com.techfix.app.data.remote.dto.RepairServiceDto;
 
@@ -80,6 +89,12 @@ public class BookRepairActivity extends AppCompatActivity {
     private Long preSelectedServiceId = null;
 
     private Calendar appointmentCalendar = Calendar.getInstance();
+
+    // GPS Smart Allocation fields
+    private FusedLocationProviderClient fusedLocationClient;
+    private Double customerLatitude = null;
+    private Double customerLongitude = null;
+    private TextView tvRecommendationReason;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -141,6 +156,9 @@ public class BookRepairActivity extends AppCompatActivity {
         btnNext = findViewById(R.id.btnNext);
         progressBar = findViewById(R.id.progressBar);
         tvError = findViewById(R.id.tvError);
+        tvRecommendationReason = findViewById(R.id.tvRecommendationReason);
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         // Default appointment: Tomorrow at 10:00 AM
         appointmentCalendar.add(Calendar.DAY_OF_MONTH, 1);
@@ -217,6 +235,10 @@ public class BookRepairActivity extends AppCompatActivity {
         step2Indicator.setTextColor(currentStep >= 2 ? activeColor : mutedColor);
         step3Indicator.setTextColor(currentStep >= 3 ? activeColor : mutedColor);
         step4Indicator.setTextColor(currentStep >= 4 ? activeColor : mutedColor);
+
+        if (currentStep == 3) {
+            checkLocationAndQueryRecommendation();
+        }
 
         if (currentStep == 4) {
             populateSummary();
@@ -397,6 +419,8 @@ public class BookRepairActivity extends AppCompatActivity {
                 problem,
                 apptIso
         );
+        dto.setCustomerLatitude(customerLatitude);
+        dto.setCustomerLongitude(customerLongitude);
 
         ApiService api = ApiClient.getApiService();
         api.createBooking(dto).enqueue(new Callback<ApiResponse<BookingResponseDto>>() {
@@ -448,5 +472,94 @@ public class BookRepairActivity extends AppCompatActivity {
 
     private String getText(TextInputEditText editText) {
         return editText.getText() != null ? editText.getText().toString().trim() : "";
+    }
+
+    // ─── GPS SMART BRANCH ALLOCATION ─────────────────────────────────
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 1002) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                getLocationAndQueryRecommendation();
+            } else {
+                // Fallback to Colombo
+                customerLatitude = 6.9271;
+                customerLongitude = 79.8612;
+                queryRecommendation(customerLatitude, customerLongitude);
+            }
+        }
+    }
+
+    private void checkLocationAndQueryRecommendation() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1002);
+        } else {
+            getLocationAndQueryRecommendation();
+        }
+    }
+
+    private void getLocationAndQueryRecommendation() {
+        try {
+            showLoading(true);
+            fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
+                if (location != null) {
+                    customerLatitude = location.getLatitude();
+                    customerLongitude = location.getLongitude();
+                } else {
+                    // Fallback to Colombo
+                    customerLatitude = 6.9271;
+                    customerLongitude = 79.8612;
+                }
+                queryRecommendation(customerLatitude, customerLongitude);
+            });
+        } catch (SecurityException e) {
+            showLoading(false);
+            e.printStackTrace();
+            // Fallback to Colombo
+            customerLatitude = 6.9271;
+            customerLongitude = 79.8612;
+            queryRecommendation(customerLatitude, customerLongitude);
+        }
+    }
+
+    private void queryRecommendation(double lat, double lon) {
+        showLoading(true);
+        ApiService api = ApiClient.getApiService();
+        String brand = getText(etDeviceBrand);
+        String model = getText(etDeviceModel);
+
+        BranchRecommendationRequestDto req = new BranchRecommendationRequestDto(
+                lat, lon, selectedService.getId(), brand, model
+        );
+
+        api.recommendBranch(req).enqueue(new Callback<ApiResponse<BranchRecommendationResponseDto>>() {
+            @Override
+            public void onResponse(@NonNull Call<ApiResponse<BranchRecommendationResponseDto>> call, @NonNull Response<ApiResponse<BranchRecommendationResponseDto>> response) {
+                showLoading(false);
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    BranchRecommendationResponseDto data = response.body().getData();
+                    if (data != null && data.getRecommendedBranch() != null) {
+                        Long recommendedId = data.getRecommendedBranch().getId();
+                        if (recommendedId == 2L) {
+                            rgBranch.check(R.id.rbGalle);
+                        } else {
+                            rgBranch.check(R.id.rbColombo);
+                        }
+
+                        tvRecommendationReason.setText("Smart Recommendation: " + data.getReason());
+                        tvRecommendationReason.setVisibility(View.VISIBLE);
+                    }
+                } else {
+                    tvRecommendationReason.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ApiResponse<BranchRecommendationResponseDto>> call, @NonNull Throwable t) {
+                showLoading(false);
+                tvRecommendationReason.setVisibility(View.GONE);
+            }
+        });
     }
 }
