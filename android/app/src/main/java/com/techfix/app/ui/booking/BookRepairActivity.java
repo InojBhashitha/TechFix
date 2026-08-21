@@ -5,8 +5,10 @@ import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.widget.ImageView;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -40,7 +42,16 @@ import com.techfix.app.data.remote.dto.BranchRecommendationRequestDto;
 import com.techfix.app.data.remote.dto.BranchRecommendationResponseDto;
 import com.techfix.app.data.remote.dto.DeviceCategoryDto;
 import com.techfix.app.data.remote.dto.RepairServiceDto;
+import com.techfix.app.ui.adapters.RepairImageAdapter;
+import com.bumptech.glide.Glide;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.content.FileProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -98,6 +109,53 @@ public class BookRepairActivity extends AppCompatActivity {
     private TextView tvRecBranchName, tvRecDistance, tvRecTechnician, tvRecParts, tvRecReason;
     private MaterialButton btnConfirmBranch;
     private boolean isBranchConfirmed = false;
+
+    // Repair Image fields
+    private MaterialButton btnTakePhoto, btnChooseGallery;
+    private RecyclerView rvRepairImages;
+    private TextView tvNoImages;
+    private RepairImageAdapter imageAdapter;
+    private final List<Uri> selectedImageUris = new ArrayList<>();
+    private Uri tempCameraUri;
+
+    private final ActivityResultLauncher<String> requestCameraPermissionLauncher = registerForActivityResult(
+            new ActivityResultContracts.RequestPermission(),
+            isGranted -> {
+                if (isGranted) {
+                    launchCamera();
+                } else {
+                    Toast.makeText(this, "Camera permission denied. Cannot take photo.", Toast.LENGTH_SHORT).show();
+                }
+            }
+    );
+
+    private final ActivityResultLauncher<Uri> takePictureLauncher = registerForActivityResult(
+            new ActivityResultContracts.TakePicture(),
+            isSuccess -> {
+                if (isSuccess && tempCameraUri != null) {
+                    selectedImageUris.add(tempCameraUri);
+                    imageAdapter.setImageUris(selectedImageUris);
+                    updateImagesStateUI();
+                } else {
+                    Toast.makeText(this, "Camera capture cancelled or failed.", Toast.LENGTH_SHORT).show();
+                }
+            }
+    );
+
+    private final ActivityResultLauncher<String> getContentLauncher = registerForActivityResult(
+            new ActivityResultContracts.GetMultipleContents(),
+            uris -> {
+                if (uris != null && !uris.isEmpty()) {
+                    for (Uri uri : uris) {
+                        if (!selectedImageUris.contains(uri)) {
+                            selectedImageUris.add(uri);
+                        }
+                    }
+                    imageAdapter.setImageUris(selectedImageUris);
+                    updateImagesStateUI();
+                }
+            }
+    );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -168,6 +226,26 @@ public class BookRepairActivity extends AppCompatActivity {
         tvRecReason = findViewById(R.id.tvRecReason);
         btnConfirmBranch = findViewById(R.id.btnConfirmBranch);
 
+        btnTakePhoto = findViewById(R.id.btnTakePhoto);
+        btnChooseGallery = findViewById(R.id.btnChooseGallery);
+        rvRepairImages = findViewById(R.id.rvRepairImages);
+        tvNoImages = findViewById(R.id.tvNoImages);
+
+        imageAdapter = new RepairImageAdapter(new RepairImageAdapter.OnImageActionListener() {
+            @Override
+            public void onImageClick(Uri uri) {
+                showImagePreviewDialog(uri);
+            }
+
+            @Override
+            public void onImageDelete(Uri uri, int position) {
+                removeImage(uri, position);
+            }
+        });
+
+        rvRepairImages.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        rvRepairImages.setAdapter(imageAdapter);
+
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         // Default appointment: Tomorrow at 10:00 AM
@@ -206,6 +284,9 @@ public class BookRepairActivity extends AppCompatActivity {
 
         btnPickDate.setOnClickListener(v -> showDatePicker());
         btnPickTime.setOnClickListener(v -> showTimePicker());
+
+        btnTakePhoto.setOnClickListener(v -> checkCameraPermissionAndLaunch());
+        btnChooseGallery.setOnClickListener(v -> getContentLauncher.launch("image/*"));
 
         spinnerCategory.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -629,5 +710,91 @@ public class BookRepairActivity extends AppCompatActivity {
                 showError("Network error. Failed to retrieve smart branch recommendation.");
             }
         });
+    }
+
+    // ─── REPAIR IMAGES LOCAL SELECTION & PREVIEW ──────────────────────
+
+    private void checkCameraPermissionAndLaunch() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            launchCamera();
+        } else {
+            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA);
+        }
+    }
+
+    private void launchCamera() {
+        try {
+            File photoFile = new File(getCacheDir(), "temp_repair_" + System.currentTimeMillis() + ".jpg");
+            tempCameraUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", photoFile);
+            takePictureLauncher.launch(tempCameraUri);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Failed to launch device camera.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void removeImage(Uri uri, int position) {
+        if (position >= 0 && position < selectedImageUris.size()) {
+            selectedImageUris.remove(position);
+            imageAdapter.setImageUris(selectedImageUris);
+            updateImagesStateUI();
+        }
+    }
+
+    private void updateImagesStateUI() {
+        if (selectedImageUris.isEmpty()) {
+            rvRepairImages.setVisibility(View.GONE);
+            tvNoImages.setVisibility(View.VISIBLE);
+        } else {
+            rvRepairImages.setVisibility(View.VISIBLE);
+            tvNoImages.setVisibility(View.GONE);
+        }
+    }
+
+    private void showImagePreviewDialog(Uri uri) {
+        final android.app.Dialog dialog = new android.app.Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        dialog.setContentView(R.layout.dialog_image_preview);
+        ImageView ivPreview = dialog.findViewById(R.id.ivPreview);
+        View btnClose = dialog.findViewById(R.id.btnClosePreview);
+
+        Glide.with(this)
+                .load(uri)
+                .into(ivPreview);
+
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        ArrayList<String> uriStrings = new ArrayList<>();
+        for (Uri uri : selectedImageUris) {
+            uriStrings.add(uri.toString());
+        }
+        outState.putStringArrayList("selected_image_uris", uriStrings);
+        if (tempCameraUri != null) {
+            outState.putString("temp_camera_uri", tempCameraUri.toString());
+        }
+    }
+
+    @Override
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        ArrayList<String> uriStrings = savedInstanceState.getStringArrayList("selected_image_uris");
+        if (uriStrings != null) {
+            selectedImageUris.clear();
+            for (String s : uriStrings) {
+                selectedImageUris.add(Uri.parse(s));
+            }
+            if (imageAdapter != null) {
+                imageAdapter.setImageUris(selectedImageUris);
+                updateImagesStateUI();
+            }
+        }
+        String tempUriStr = savedInstanceState.getString("temp_camera_uri");
+        if (tempUriStr != null) {
+            tempCameraUri = Uri.parse(tempUriStr);
+        }
     }
 }

@@ -16,7 +16,6 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Optional;
 
@@ -47,7 +46,6 @@ class RepairImageServiceTest {
     private User staffGalle;
     
     private Branch colomboBranch;
-    private Branch galleBranch;
     
     private RepairRequest repairRequest;
 
@@ -75,7 +73,6 @@ class RepairImageServiceTest {
 
         // Setup branches
         colomboBranch = new Branch(1L, "Colombo Branch", "Addr 1", "phone1", 6.9, 79.8, true);
-        galleBranch = new Branch(2L, "Galle Branch", "Addr 2", "phone2", 6.0, 80.2, true);
 
         // Setup repair request
         repairRequest = new RepairRequest();
