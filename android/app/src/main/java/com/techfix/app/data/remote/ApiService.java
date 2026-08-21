@@ -2,14 +2,20 @@ package com.techfix.app.data.remote;
 
 import com.techfix.app.data.remote.dto.ApiResponse;
 import com.techfix.app.data.remote.dto.AuthResponse;
+import com.techfix.app.data.remote.dto.DeviceCategoryDto;
 import com.techfix.app.data.remote.dto.LoginRequest;
 import com.techfix.app.data.remote.dto.RegisterRequest;
+import com.techfix.app.data.remote.dto.RepairServiceDto;
 import com.techfix.app.data.remote.dto.UserProfile;
+
+import java.util.List;
 
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
+import retrofit2.http.Path;
+import retrofit2.http.Query;
 
 public interface ApiService {
 
@@ -22,4 +28,14 @@ public interface ApiService {
 
     @GET("api/auth/profile")
     Call<ApiResponse<UserProfile>> getProfile();
+
+    // ─── Categories & Repair Services ────────────────────────────
+    @GET("api/categories")
+    Call<ApiResponse<List<DeviceCategoryDto>>> getCategories();
+
+    @GET("api/services")
+    Call<ApiResponse<List<RepairServiceDto>>> getServices(@Query("categoryId") Long categoryId);
+
+    @GET("api/services/{id}")
+    Call<ApiResponse<RepairServiceDto>> getServiceById(@Path("id") Long id);
 }
