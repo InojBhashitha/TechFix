@@ -16,7 +16,7 @@ import org.mockito.MockitoAnnotations;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
+//import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -93,14 +93,16 @@ class BranchServiceTest {
         galleTech.setBranch(galle);
         galleTech.setIsAvailable(true);
         galleTech.setSpecialization("Mobile Hardware");
-        when(technicianRepository.findByBranchIdAndIsAvailableTrue(2L)).thenReturn(Collections.singletonList(galleTech));
+        when(technicianRepository.findByBranchIdAndIsAvailableTrue(2L))
+                .thenReturn(Collections.singletonList(galleTech));
 
         // Colombo has mobile technician
         Technician colomboTech = new Technician();
         colomboTech.setBranch(colombo);
         colomboTech.setIsAvailable(true);
         colomboTech.setSpecialization("Mobile Hardware Specialist");
-        when(technicianRepository.findByBranchIdAndIsAvailableTrue(1L)).thenReturn(Collections.singletonList(colomboTech));
+        when(technicianRepository.findByBranchIdAndIsAvailableTrue(1L))
+                .thenReturn(Collections.singletonList(colomboTech));
 
         // Both have stock for iPhone 13 Screen (Part ID 1)
         BranchInventory colomboInv = new BranchInventory();
@@ -113,8 +115,7 @@ class BranchServiceTest {
 
         // Request from Galle area (lat=6.0500, lon=80.2200)
         BranchRecommendationRequestDto request = new BranchRecommendationRequestDto(
-                6.0500, 80.2200, 1L, "Apple", "iPhone 13"
-        );
+                6.0500, 80.2200, 1L, "Apple", "iPhone 13");
 
         BranchRecommendationResponseDto response = branchService.getBranchRecommendation(request);
 
@@ -139,11 +140,13 @@ class BranchServiceTest {
         // Both have mobile technicians
         Technician galleTech = new Technician();
         galleTech.setSpecialization("Mobile Hardware");
-        when(technicianRepository.findByBranchIdAndIsAvailableTrue(2L)).thenReturn(Collections.singletonList(galleTech));
+        when(technicianRepository.findByBranchIdAndIsAvailableTrue(2L))
+                .thenReturn(Collections.singletonList(galleTech));
 
         Technician colomboTech = new Technician();
         colomboTech.setSpecialization("Mobile Specialist");
-        when(technicianRepository.findByBranchIdAndIsAvailableTrue(1L)).thenReturn(Collections.singletonList(colomboTech));
+        when(technicianRepository.findByBranchIdAndIsAvailableTrue(1L))
+                .thenReturn(Collections.singletonList(colomboTech));
 
         // Colombo has stock (quantity=5), Galle has 0 stock
         BranchInventory colomboInv = new BranchInventory();
@@ -156,15 +159,15 @@ class BranchServiceTest {
 
         // Request from Galle area
         BranchRecommendationRequestDto request = new BranchRecommendationRequestDto(
-                6.0500, 80.2200, 1L, "Apple", "iPhone 13"
-        );
+                6.0500, 80.2200, 1L, "Apple", "iPhone 13");
 
         BranchRecommendationResponseDto response = branchService.getBranchRecommendation(request);
 
         assertNotNull(response);
         assertEquals(1L, response.getRecommendedBranch().getId()); // Colombo recommended
         assertTrue(response.getIsPartAvailable());
-        assertTrue(response.getReason().contains("shortest distance") && response.getReason().contains("spare parts in stock"));
+        assertTrue(response.getReason().contains("shortest distance")
+                && response.getReason().contains("spare parts in stock"));
     }
 
     /**
@@ -182,13 +185,15 @@ class BranchServiceTest {
         Technician galleLaptopTech = new Technician();
         galleLaptopTech.setBranch(galle);
         galleLaptopTech.setSpecialization("Laptop Screens");
-        when(technicianRepository.findByBranchIdAndIsAvailableTrue(2L)).thenReturn(Collections.singletonList(galleLaptopTech));
+        when(technicianRepository.findByBranchIdAndIsAvailableTrue(2L))
+                .thenReturn(Collections.singletonList(galleLaptopTech));
 
         // Colombo has a desktop tech available
         Technician colomboDesktopTech = new Technician();
         colomboDesktopTech.setBranch(colombo);
         colomboDesktopTech.setSpecialization("Desktop PCs and PSU Diagnostics");
-        when(technicianRepository.findByBranchIdAndIsAvailableTrue(1L)).thenReturn(Collections.singletonList(colomboDesktopTech));
+        when(technicianRepository.findByBranchIdAndIsAvailableTrue(1L))
+                .thenReturn(Collections.singletonList(colomboDesktopTech));
 
         // Both have stock for desktop PSU (Part ID 6)
         BranchInventory colomboInv = new BranchInventory();
@@ -201,8 +206,7 @@ class BranchServiceTest {
 
         // Request from Galle area
         BranchRecommendationRequestDto request = new BranchRecommendationRequestDto(
-                6.0500, 80.2200, 9L, "Custom", "Gaming PC"
-        );
+                6.0500, 80.2200, 9L, "Custom", "Gaming PC");
 
         BranchRecommendationResponseDto response = branchService.getBranchRecommendation(request);
 
@@ -213,7 +217,8 @@ class BranchServiceTest {
     }
 
     /**
-     * Case 4: Both branches are unavailable (e.g. parts are out of stock everywhere).
+     * Case 4: Both branches are unavailable (e.g. parts are out of stock
+     * everywhere).
      * Result: Fallback to closest branch overall with a warning message.
      */
     @Test
@@ -224,11 +229,13 @@ class BranchServiceTest {
         // Both have mobile technicians
         Technician galleTech = new Technician();
         galleTech.setSpecialization("Mobile Hardware");
-        when(technicianRepository.findByBranchIdAndIsAvailableTrue(2L)).thenReturn(Collections.singletonList(galleTech));
+        when(technicianRepository.findByBranchIdAndIsAvailableTrue(2L))
+                .thenReturn(Collections.singletonList(galleTech));
 
         Technician colomboTech = new Technician();
         colomboTech.setSpecialization("Mobile Specialist");
-        when(technicianRepository.findByBranchIdAndIsAvailableTrue(1L)).thenReturn(Collections.singletonList(colomboTech));
+        when(technicianRepository.findByBranchIdAndIsAvailableTrue(1L))
+                .thenReturn(Collections.singletonList(colomboTech));
 
         // Both have 0 stock
         BranchInventory colomboInv = new BranchInventory();
@@ -241,8 +248,7 @@ class BranchServiceTest {
 
         // Request from Galle area
         BranchRecommendationRequestDto request = new BranchRecommendationRequestDto(
-                6.0500, 80.2200, 1L, "Apple", "iPhone 13"
-        );
+                6.0500, 80.2200, 1L, "Apple", "iPhone 13");
 
         BranchRecommendationResponseDto response = branchService.getBranchRecommendation(request);
 

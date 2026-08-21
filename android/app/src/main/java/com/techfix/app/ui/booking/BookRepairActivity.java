@@ -94,7 +94,10 @@ public class BookRepairActivity extends AppCompatActivity {
     private FusedLocationProviderClient fusedLocationClient;
     private Double customerLatitude = null;
     private Double customerLongitude = null;
-    private TextView tvRecommendationReason;
+    private MaterialCardView cardRecommendation;
+    private TextView tvRecBranchName, tvRecDistance, tvRecTechnician, tvRecParts, tvRecReason;
+    private MaterialButton btnConfirmBranch;
+    private boolean isBranchConfirmed = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -156,7 +159,14 @@ public class BookRepairActivity extends AppCompatActivity {
         btnNext = findViewById(R.id.btnNext);
         progressBar = findViewById(R.id.progressBar);
         tvError = findViewById(R.id.tvError);
-        tvRecommendationReason = findViewById(R.id.tvRecommendationReason);
+        
+        cardRecommendation = findViewById(R.id.cardRecommendation);
+        tvRecBranchName = findViewById(R.id.tvRecBranchName);
+        tvRecDistance = findViewById(R.id.tvRecDistance);
+        tvRecTechnician = findViewById(R.id.tvRecTechnician);
+        tvRecParts = findViewById(R.id.tvRecParts);
+        tvRecReason = findViewById(R.id.tvRecReason);
+        btnConfirmBranch = findViewById(R.id.btnConfirmBranch);
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
@@ -184,6 +194,14 @@ public class BookRepairActivity extends AppCompatActivity {
                 currentStep--;
                 updateStepUI();
             }
+        });
+
+        btnConfirmBranch.setOnClickListener(v -> {
+            isBranchConfirmed = true;
+            btnConfirmBranch.setText("Branch Confirmed ✓");
+            btnConfirmBranch.setEnabled(false);
+            tvError.setVisibility(View.GONE);
+            Toast.makeText(this, "Branch selection confirmed successfully.", Toast.LENGTH_SHORT).show();
         });
 
         btnPickDate.setOnClickListener(v -> showDatePicker());
@@ -266,6 +284,11 @@ public class BookRepairActivity extends AppCompatActivity {
             }
             if (TextUtils.isEmpty(desc)) {
                 etProblemDescription.setError("Problem description is required");
+                return false;
+            }
+        } else if (step == 3) {
+            if (!isBranchConfirmed) {
+                showError("Please click [Confirm Branch] to verify your branch selection before proceeding.");
                 return false;
             }
         }
@@ -533,6 +556,10 @@ public class BookRepairActivity extends AppCompatActivity {
                 lat, lon, selectedService.getId(), brand, model
         );
 
+        isBranchConfirmed = false;
+        btnConfirmBranch.setText("Confirm Branch");
+        btnConfirmBranch.setEnabled(true);
+
         api.recommendBranch(req).enqueue(new Callback<ApiResponse<BranchRecommendationResponseDto>>() {
             @Override
             public void onResponse(@NonNull Call<ApiResponse<BranchRecommendationResponseDto>> call, @NonNull Response<ApiResponse<BranchRecommendationResponseDto>> response) {
@@ -540,6 +567,35 @@ public class BookRepairActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                     BranchRecommendationResponseDto data = response.body().getData();
                     if (data != null && data.getRecommendedBranch() != null) {
+                        cardRecommendation.setVisibility(View.VISIBLE);
+
+                        String name = data.getRecommendedBranch().getName();
+                        Double dist = data.getDistanceKm();
+                        boolean techAvail = data.getIsTechnicianAvailable();
+                        boolean partAvail = data.getIsPartAvailable();
+                        String reason = data.getReason();
+
+                        tvRecBranchName.setText("Recommended Branch: " + name);
+                        tvRecDistance.setText(String.format(Locale.getDefault(), "Distance: %.1f km", dist));
+                        
+                        if (techAvail) {
+                            tvRecTechnician.setText("Technician: Available");
+                            tvRecTechnician.setTextColor(ContextCompat.getColor(BookRepairActivity.this, R.color.status_completed));
+                        } else {
+                            tvRecTechnician.setText("Technician: Busy / Unavailable");
+                            tvRecTechnician.setTextColor(ContextCompat.getColor(BookRepairActivity.this, R.color.status_in_progress));
+                        }
+
+                        if (partAvail) {
+                            tvRecParts.setText("Required Parts: Available");
+                            tvRecParts.setTextColor(ContextCompat.getColor(BookRepairActivity.this, R.color.status_completed));
+                        } else {
+                            tvRecParts.setText("Required Parts: Out of Stock");
+                            tvRecParts.setTextColor(ContextCompat.getColor(BookRepairActivity.this, R.color.status_cancelled));
+                        }
+
+                        tvRecReason.setText("Reason: " + reason);
+
                         Long recommendedId = data.getRecommendedBranch().getId();
                         if (recommendedId == 2L) {
                             rgBranch.check(R.id.rbGalle);
@@ -547,18 +603,30 @@ public class BookRepairActivity extends AppCompatActivity {
                             rgBranch.check(R.id.rbColombo);
                         }
 
-                        tvRecommendationReason.setText("Smart Recommendation: " + data.getReason());
-                        tvRecommendationReason.setVisibility(View.VISIBLE);
+                        // Validation: If no suitable branch is available, block next step navigation
+                        if (!techAvail || !partAvail) {
+                            showError("Booking cannot proceed. No suitable branch is currently available for this repair service.");
+                            btnConfirmBranch.setEnabled(false);
+                            btnConfirmBranch.setText("Unavailable");
+                            isBranchConfirmed = false;
+                        } else {
+                            tvError.setVisibility(View.GONE);
+                        }
+                    } else {
+                        cardRecommendation.setVisibility(View.GONE);
+                        showError("Failed to fetch smart recommendation details.");
                     }
                 } else {
-                    tvRecommendationReason.setVisibility(View.GONE);
+                    cardRecommendation.setVisibility(View.GONE);
+                    showError("Recommendation API failed: " + (response.body() != null ? response.body().getMessage() : "API Error"));
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<ApiResponse<BranchRecommendationResponseDto>> call, @NonNull Throwable t) {
                 showLoading(false);
-                tvRecommendationReason.setVisibility(View.GONE);
+                cardRecommendation.setVisibility(View.GONE);
+                showError("Network error. Failed to retrieve smart branch recommendation.");
             }
         });
     }
