@@ -39,8 +39,10 @@ public class ApiClient {
                 httpClient.addInterceptor(chain -> {
                     okhttp3.Request original = chain.request();
                     okhttp3.Request.Builder requestBuilder = original.newBuilder()
-                            .header("Authorization", "Bearer " + authToken)
-                            .header("Content-Type", "application/json");
+                            .header("Authorization", "Bearer " + authToken);
+                    if (original.header("Content-Type") == null) {
+                        requestBuilder.header("Content-Type", "application/json");
+                    }
                     return chain.proceed(requestBuilder.build());
                 });
             }

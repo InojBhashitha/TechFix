@@ -1,10 +1,10 @@
 package com.techfix.app.ui.adapters;
 
-import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -17,20 +17,20 @@ import java.util.List;
 
 public class RepairImageAdapter extends RecyclerView.Adapter<RepairImageAdapter.ImageViewHolder> {
 
-    private List<Uri> imageUris = new ArrayList<>();
+    private List<SelectedImage> imageList = new ArrayList<>();
     private final OnImageActionListener listener;
 
     public interface OnImageActionListener {
-        void onImageClick(Uri uri);
-        void onImageDelete(Uri uri, int position);
+        void onImageClick(SelectedImage image);
+        void onImageDelete(SelectedImage image, int position);
     }
 
     public RepairImageAdapter(OnImageActionListener listener) {
         this.listener = listener;
     }
 
-    public void setImageUris(List<Uri> uris) {
-        this.imageUris = uris;
+    public void setImageList(List<SelectedImage> list) {
+        this.imageList = list;
         notifyDataSetChanged();
     }
 
@@ -43,31 +43,51 @@ public class RepairImageAdapter extends RecyclerView.Adapter<RepairImageAdapter.
 
     @Override
     public void onBindViewHolder(@NonNull ImageViewHolder holder, int position) {
-        Uri uri = imageUris.get(position);
+        SelectedImage item = imageList.get(position);
 
         // Load image using Glide
         Glide.with(holder.itemView.getContext())
-                .load(uri)
+                .load(item.getUri())
                 .placeholder(android.R.drawable.ic_menu_gallery)
                 .error(android.R.drawable.ic_menu_report_image)
                 .into(holder.ivThumbnail);
 
-        holder.ivThumbnail.setOnClickListener(v -> listener.onImageClick(uri));
-        holder.btnRemoveImage.setOnClickListener(v -> listener.onImageDelete(uri, position));
+        // Update state views visibility
+        SelectedImage.State state = item.getState();
+        holder.pbUpload.setVisibility(state == SelectedImage.State.UPLOADING ? View.VISIBLE : View.GONE);
+        holder.ivUploadSuccess.setVisibility(state == SelectedImage.State.UPLOADED ? View.VISIBLE : View.GONE);
+        holder.ivUploadFailed.setVisibility(state == SelectedImage.State.FAILED ? View.VISIBLE : View.GONE);
+
+        // Disable deletion if uploading or uploaded
+        boolean canDelete = (state == SelectedImage.State.PENDING || state == SelectedImage.State.FAILED);
+        holder.btnRemoveImage.setVisibility(canDelete ? View.VISIBLE : View.GONE);
+
+        holder.ivThumbnail.setOnClickListener(v -> listener.onImageClick(item));
+        holder.btnRemoveImage.setOnClickListener(v -> {
+            if (canDelete) {
+                listener.onImageDelete(item, position);
+            }
+        });
     }
 
     @Override
     public int getItemCount() {
-        return imageUris.size();
+        return imageList.size();
     }
 
     static class ImageViewHolder extends RecyclerView.ViewHolder {
         ImageView ivThumbnail;
+        ProgressBar pbUpload;
+        ImageView ivUploadSuccess;
+        ImageView ivUploadFailed;
         View btnRemoveImage;
 
         ImageViewHolder(@NonNull View itemView) {
             super(itemView);
             ivThumbnail = itemView.findViewById(R.id.ivThumbnail);
+            pbUpload = itemView.findViewById(R.id.pbUpload);
+            ivUploadSuccess = itemView.findViewById(R.id.ivUploadSuccess);
+            ivUploadFailed = itemView.findViewById(R.id.ivUploadFailed);
             btnRemoveImage = itemView.findViewById(R.id.btnRemoveImage);
         }
     }

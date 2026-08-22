@@ -56,5 +56,14 @@ public interface ApiService {
     // ─── Branch Recommendations ──────────────────────────────────
     @POST("api/branches/recommend-branch")
     Call<ApiResponse<BranchRecommendationResponseDto>> recommendBranch(@Body BranchRecommendationRequestDto request);
+
+    // ─── Image Uploads ───────────────────────────────────────────
+    @retrofit2.http.Multipart
+    @POST("api/images/upload-repair-image")
+    Call<ApiResponse<com.techfix.app.data.remote.dto.RepairImageDto>> uploadRepairImage(
+            @retrofit2.http.Part okhttp3.MultipartBody.Part file,
+            @retrofit2.http.Part("bookingReference") okhttp3.RequestBody bookingReference,
+            @retrofit2.http.Part("imageType") okhttp3.RequestBody imageType
+    );
 }
 
