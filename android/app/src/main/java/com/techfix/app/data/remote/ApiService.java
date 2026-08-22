@@ -65,5 +65,11 @@ public interface ApiService {
             @retrofit2.http.Part("bookingReference") okhttp3.RequestBody bookingReference,
             @retrofit2.http.Part("imageType") okhttp3.RequestBody imageType
     );
+
+    // ─── Repair Tracking ─────────────────────────────────────────
+    @GET("api/bookings/{reference}/tracking")
+    Call<ApiResponse<com.techfix.app.data.remote.dto.RepairTrackingDto>> getBookingTracking(
+            @Path("reference") String reference
+    );
 }
 

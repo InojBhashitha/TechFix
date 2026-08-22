@@ -42,7 +42,6 @@ class RepairTrackingServiceTest {
     private User admin;
 
     private Branch colomboBranch;
-    private Branch galleBranch;
 
     private RepairRequest repairRequest;
     private List<RepairStatusHistory> historyList;
@@ -71,7 +70,6 @@ class RepairTrackingServiceTest {
 
         // Setup branches
         colomboBranch = new Branch(1L, "Colombo Branch", "Addr 1", "phone1", 6.9, 79.8, true);
-        galleBranch = new Branch(2L, "Galle Branch", "Addr 2", "phone2", 6.0, 80.2, true);
 
         // Setup repair request
         repairRequest = new RepairRequest();
