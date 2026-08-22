@@ -2,6 +2,7 @@ package com.techfix.api.dto;
 
 import com.techfix.api.enums.RepairStatus;
 import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
 
 public class UpdateRepairStatusRequestDto {
 
@@ -10,14 +11,14 @@ public class UpdateRepairStatusRequestDto {
 
     private String notes;
 
-    private String updatedBy;
+    private BigDecimal additionalCost;
 
     public UpdateRepairStatusRequestDto() {}
 
-    public UpdateRepairStatusRequestDto(RepairStatus status, String notes, String updatedBy) {
+    public UpdateRepairStatusRequestDto(RepairStatus status, String notes, BigDecimal additionalCost) {
         this.status = status;
         this.notes = notes;
-        this.updatedBy = updatedBy;
+        this.additionalCost = additionalCost;
     }
 
     public RepairStatus getStatus() { return status; }
@@ -26,6 +27,6 @@ public class UpdateRepairStatusRequestDto {
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
 
-    public String getUpdatedBy() { return updatedBy; }
-    public void setUpdatedBy(String updatedBy) { this.updatedBy = updatedBy; }
+    public BigDecimal getAdditionalCost() { return additionalCost; }
+    public void setAdditionalCost(BigDecimal additionalCost) { this.additionalCost = additionalCost; }
 }

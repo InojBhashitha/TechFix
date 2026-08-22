@@ -1,39 +1,47 @@
 package com.techfix.api.dto;
 
 public class StaffDashboardStatsDto {
-    private long totalRepairs;
-    private long pendingRepairs;
-    private long inProgressRepairs;
-    private long completedRepairs;
-    private long lowStockItemsCount;
-    private long activeTechniciansCount;
+
+    private Long totalRepairs;
+    private Long pendingRepairs;
+    private Long inProgressRepairs;
+    private Long completedRepairs;
+    private Long cancelledRepairs;
+    private Long lowStockAlerts;
+    private Long availableTechnicians;
 
     public StaffDashboardStatsDto() {}
 
-    public StaffDashboardStatsDto(long totalRepairs, long pendingRepairs, long inProgressRepairs, long completedRepairs, long lowStockItemsCount, long activeTechniciansCount) {
+    public StaffDashboardStatsDto(Long totalRepairs, Long pendingRepairs, Long inProgressRepairs,
+                                 Long completedRepairs, Long cancelledRepairs,
+                                 Long lowStockAlerts, Long availableTechnicians) {
         this.totalRepairs = totalRepairs;
         this.pendingRepairs = pendingRepairs;
         this.inProgressRepairs = inProgressRepairs;
         this.completedRepairs = completedRepairs;
-        this.lowStockItemsCount = lowStockItemsCount;
-        this.activeTechniciansCount = activeTechniciansCount;
+        this.cancelledRepairs = cancelledRepairs;
+        this.lowStockAlerts = lowStockAlerts;
+        this.availableTechnicians = availableTechnicians;
     }
 
-    public long getTotalRepairs() { return totalRepairs; }
-    public void setTotalRepairs(long totalRepairs) { this.totalRepairs = totalRepairs; }
+    public Long getTotalRepairs() { return totalRepairs; }
+    public void setTotalRepairs(Long totalRepairs) { this.totalRepairs = totalRepairs; }
 
-    public long getPendingRepairs() { return pendingRepairs; }
-    public void setPendingRepairs(long pendingRepairs) { this.pendingRepairs = pendingRepairs; }
+    public Long getPendingRepairs() { return pendingRepairs; }
+    public void setPendingRepairs(Long pendingRepairs) { this.pendingRepairs = pendingRepairs; }
 
-    public long getInProgressRepairs() { return inProgressRepairs; }
-    public void setInProgressRepairs(long inProgressRepairs) { this.inProgressRepairs = inProgressRepairs; }
+    public Long getInProgressRepairs() { return inProgressRepairs; }
+    public void setInProgressRepairs(Long inProgressRepairs) { this.inProgressRepairs = inProgressRepairs; }
 
-    public long getCompletedRepairs() { return completedRepairs; }
-    public void setCompletedRepairs(long completedRepairs) { this.completedRepairs = completedRepairs; }
+    public Long getCompletedRepairs() { return completedRepairs; }
+    public void setCompletedRepairs(Long completedRepairs) { this.completedRepairs = completedRepairs; }
 
-    public long getLowStockItemsCount() { return lowStockItemsCount; }
-    public void setLowStockItemsCount(long lowStockItemsCount) { this.lowStockItemsCount = lowStockItemsCount; }
+    public Long getCancelledRepairs() { return cancelledRepairs; }
+    public void setCancelledRepairs(Long cancelledRepairs) { this.cancelledRepairs = cancelledRepairs; }
 
-    public long getActiveTechniciansCount() { return activeTechniciansCount; }
-    public void setActiveTechniciansCount(long activeTechniciansCount) { this.activeTechniciansCount = activeTechniciansCount; }
+    public Long getLowStockAlerts() { return lowStockAlerts; }
+    public void setLowStockAlerts(Long lowStockAlerts) { this.lowStockAlerts = lowStockAlerts; }
+
+    public Long getAvailableTechnicians() { return availableTechnicians; }
+    public void setAvailableTechnicians(Long availableTechnicians) { this.availableTechnicians = availableTechnicians; }
 }
