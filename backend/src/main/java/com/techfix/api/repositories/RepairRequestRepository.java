@@ -16,4 +16,7 @@ public interface RepairRequestRepository extends JpaRepository<RepairRequest, Lo
     List<RepairRequest> findByBranchIdAndCurrentStatus(Long branchId, RepairStatus status);
     List<RepairRequest> findByTechnicianId(Long technicianId);
     long countByBranchIdAndCurrentStatus(Long branchId, RepairStatus status);
+    long countByBranchId(Long branchId);
+    long countByCurrentStatusIn(List<RepairStatus> statuses);
+    long countByBranchIdAndCurrentStatusIn(Long branchId, List<RepairStatus> statuses);
 }
