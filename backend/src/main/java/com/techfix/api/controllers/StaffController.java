@@ -1,8 +1,11 @@
 package com.techfix.api.controllers;
 
 import com.techfix.api.dto.ApiResponse;
+import com.techfix.api.dto.BookingResponseDto;
 import com.techfix.api.dto.StaffDashboardStatsDto;
+import com.techfix.api.dto.UpdateRepairStatusRequestDto;
 import com.techfix.api.services.StaffService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -27,6 +30,19 @@ public class StaffController {
         try {
             StaffDashboardStatsDto stats = staffService.getDashboardStats(userDetails.getUsername(), branchId);
             return ResponseEntity.ok(ApiResponse.success("Staff dashboard stats retrieved successfully", stats));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PutMapping("/bookings/{id}/status")
+    public ResponseEntity<ApiResponse<BookingResponseDto>> updateRepairStatus(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateRepairStatusRequestDto request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            BookingResponseDto updatedBooking = staffService.updateRepairStatus(id, request, userDetails.getUsername());
+            return ResponseEntity.ok(ApiResponse.success("Repair status updated successfully", updatedBooking));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
