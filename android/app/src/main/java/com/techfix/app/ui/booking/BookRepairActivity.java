@@ -1,10 +1,14 @@
 package com.techfix.app.ui.booking;
 
+import android.Manifest;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.widget.ImageView;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -16,9 +20,14 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
@@ -29,9 +38,21 @@ import com.techfix.app.data.remote.ApiService;
 import com.techfix.app.data.remote.dto.ApiResponse;
 import com.techfix.app.data.remote.dto.BookingRequestDto;
 import com.techfix.app.data.remote.dto.BookingResponseDto;
+import com.techfix.app.data.remote.dto.BranchRecommendationRequestDto;
+import com.techfix.app.data.remote.dto.BranchRecommendationResponseDto;
 import com.techfix.app.data.remote.dto.DeviceCategoryDto;
 import com.techfix.app.data.remote.dto.RepairServiceDto;
+import com.techfix.app.ui.adapters.RepairImageAdapter;
+import com.techfix.app.ui.adapters.SelectedImage;
+import com.bumptech.glide.Glide;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.content.FileProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -80,6 +101,71 @@ public class BookRepairActivity extends AppCompatActivity {
     private Long preSelectedServiceId = null;
 
     private Calendar appointmentCalendar = Calendar.getInstance();
+
+    // GPS Smart Allocation fields
+    private FusedLocationProviderClient fusedLocationClient;
+    private Double customerLatitude = null;
+    private Double customerLongitude = null;
+    private MaterialCardView cardRecommendation;
+    private TextView tvRecBranchName, tvRecDistance, tvRecTechnician, tvRecParts, tvRecReason;
+    private MaterialButton btnConfirmBranch;
+    private boolean isBranchConfirmed = false;
+
+    // Repair Image fields
+    private MaterialButton btnTakePhoto, btnChooseGallery;
+    private RecyclerView rvRepairImages;
+    private TextView tvNoImages;
+    private RepairImageAdapter imageAdapter;
+    private final List<SelectedImage> selectedImages = new ArrayList<>();
+    private Uri tempCameraUri;
+    private String createdBookingReference = null;
+    private android.app.ProgressDialog uploadProgressDialog = null;
+
+    private final ActivityResultLauncher<String> requestCameraPermissionLauncher = registerForActivityResult(
+            new ActivityResultContracts.RequestPermission(),
+            isGranted -> {
+                if (isGranted) {
+                    launchCamera();
+                } else {
+                    Toast.makeText(this, "Camera permission denied. Cannot take photo.", Toast.LENGTH_SHORT).show();
+                }
+            }
+    );
+
+    private final ActivityResultLauncher<Uri> takePictureLauncher = registerForActivityResult(
+            new ActivityResultContracts.TakePicture(),
+            isSuccess -> {
+                if (isSuccess && tempCameraUri != null) {
+                    selectedImages.add(new SelectedImage(tempCameraUri));
+                    imageAdapter.setImageList(selectedImages);
+                    updateImagesStateUI();
+                } else {
+                    Toast.makeText(this, "Camera capture cancelled or failed.", Toast.LENGTH_SHORT).show();
+                }
+            }
+    );
+
+    private final ActivityResultLauncher<String> getContentLauncher = registerForActivityResult(
+            new ActivityResultContracts.GetMultipleContents(),
+            uris -> {
+                if (uris != null && !uris.isEmpty()) {
+                    for (Uri uri : uris) {
+                        boolean exists = false;
+                        for (SelectedImage img : selectedImages) {
+                            if (img.getUri().equals(uri)) {
+                                exists = true;
+                                break;
+                            }
+                        }
+                        if (!exists) {
+                            selectedImages.add(new SelectedImage(uri));
+                        }
+                    }
+                    imageAdapter.setImageList(selectedImages);
+                    updateImagesStateUI();
+                }
+            }
+    );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -141,6 +227,36 @@ public class BookRepairActivity extends AppCompatActivity {
         btnNext = findViewById(R.id.btnNext);
         progressBar = findViewById(R.id.progressBar);
         tvError = findViewById(R.id.tvError);
+        
+        cardRecommendation = findViewById(R.id.cardRecommendation);
+        tvRecBranchName = findViewById(R.id.tvRecBranchName);
+        tvRecDistance = findViewById(R.id.tvRecDistance);
+        tvRecTechnician = findViewById(R.id.tvRecTechnician);
+        tvRecParts = findViewById(R.id.tvRecParts);
+        tvRecReason = findViewById(R.id.tvRecReason);
+        btnConfirmBranch = findViewById(R.id.btnConfirmBranch);
+
+        btnTakePhoto = findViewById(R.id.btnTakePhoto);
+        btnChooseGallery = findViewById(R.id.btnChooseGallery);
+        rvRepairImages = findViewById(R.id.rvRepairImages);
+        tvNoImages = findViewById(R.id.tvNoImages);
+
+        imageAdapter = new RepairImageAdapter(new RepairImageAdapter.OnImageActionListener() {
+            @Override
+            public void onImageClick(SelectedImage image) {
+                showImagePreviewDialog(image.getUri());
+            }
+
+            @Override
+            public void onImageDelete(SelectedImage image, int position) {
+                removeImage(position);
+            }
+        });
+
+        rvRepairImages.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        rvRepairImages.setAdapter(imageAdapter);
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         // Default appointment: Tomorrow at 10:00 AM
         appointmentCalendar.add(Calendar.DAY_OF_MONTH, 1);
@@ -152,7 +268,11 @@ public class BookRepairActivity extends AppCompatActivity {
     private void setupListeners() {
         btnNext.setOnClickListener(v -> {
             if (currentStep == 4) {
-                submitBooking();
+                if (createdBookingReference != null) {
+                    uploadRepairImages(createdBookingReference);
+                } else {
+                    submitBooking();
+                }
             } else {
                 if (validateStep(currentStep)) {
                     currentStep++;
@@ -165,11 +285,24 @@ public class BookRepairActivity extends AppCompatActivity {
             if (currentStep > 1) {
                 currentStep--;
                 updateStepUI();
+                // Reset booking reference to allow fresh submission if they edit
+                createdBookingReference = null;
             }
+        });
+
+        btnConfirmBranch.setOnClickListener(v -> {
+            isBranchConfirmed = true;
+            btnConfirmBranch.setText("Branch Confirmed ✓");
+            btnConfirmBranch.setEnabled(false);
+            tvError.setVisibility(View.GONE);
+            Toast.makeText(this, "Branch selection confirmed successfully.", Toast.LENGTH_SHORT).show();
         });
 
         btnPickDate.setOnClickListener(v -> showDatePicker());
         btnPickTime.setOnClickListener(v -> showTimePicker());
+
+        btnTakePhoto.setOnClickListener(v -> checkCameraPermissionAndLaunch());
+        btnChooseGallery.setOnClickListener(v -> getContentLauncher.launch("image/*"));
 
         spinnerCategory.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -218,6 +351,10 @@ public class BookRepairActivity extends AppCompatActivity {
         step3Indicator.setTextColor(currentStep >= 3 ? activeColor : mutedColor);
         step4Indicator.setTextColor(currentStep >= 4 ? activeColor : mutedColor);
 
+        if (currentStep == 3) {
+            checkLocationAndQueryRecommendation();
+        }
+
         if (currentStep == 4) {
             populateSummary();
         }
@@ -244,6 +381,11 @@ public class BookRepairActivity extends AppCompatActivity {
             }
             if (TextUtils.isEmpty(desc)) {
                 etProblemDescription.setError("Problem description is required");
+                return false;
+            }
+        } else if (step == 3) {
+            if (!isBranchConfirmed) {
+                showError("Please click [Confirm Branch] to verify your branch selection before proceeding.");
                 return false;
             }
         }
@@ -397,6 +539,8 @@ public class BookRepairActivity extends AppCompatActivity {
                 problem,
                 apptIso
         );
+        dto.setCustomerLatitude(customerLatitude);
+        dto.setCustomerLongitude(customerLongitude);
 
         ApiService api = ApiClient.getApiService();
         api.createBooking(dto).enqueue(new Callback<ApiResponse<BookingResponseDto>>() {
@@ -406,7 +550,11 @@ public class BookRepairActivity extends AppCompatActivity {
 
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                     BookingResponseDto booking = response.body().getData();
-                    showSuccessDialog(booking.getBookingReference());
+                    if (!selectedImages.isEmpty()) {
+                        uploadRepairImages(booking.getBookingReference());
+                    } else {
+                        showSuccessDialog(booking.getBookingReference());
+                    }
                 } else {
                     String errorMsg = "Failed to submit booking.";
                     if (response.body() != null) {
@@ -448,5 +596,369 @@ public class BookRepairActivity extends AppCompatActivity {
 
     private String getText(TextInputEditText editText) {
         return editText.getText() != null ? editText.getText().toString().trim() : "";
+    }
+
+    // ─── GPS SMART BRANCH ALLOCATION ─────────────────────────────────
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 1002) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                getLocationAndQueryRecommendation();
+            } else {
+                // Fallback to Colombo
+                customerLatitude = 6.9271;
+                customerLongitude = 79.8612;
+                queryRecommendation(customerLatitude, customerLongitude);
+            }
+        }
+    }
+
+    private void checkLocationAndQueryRecommendation() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1002);
+        } else {
+            getLocationAndQueryRecommendation();
+        }
+    }
+
+    private void getLocationAndQueryRecommendation() {
+        try {
+            showLoading(true);
+            fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
+                if (location != null) {
+                    customerLatitude = location.getLatitude();
+                    customerLongitude = location.getLongitude();
+                } else {
+                    // Fallback to Colombo
+                    customerLatitude = 6.9271;
+                    customerLongitude = 79.8612;
+                }
+                queryRecommendation(customerLatitude, customerLongitude);
+            });
+        } catch (SecurityException e) {
+            showLoading(false);
+            e.printStackTrace();
+            // Fallback to Colombo
+            customerLatitude = 6.9271;
+            customerLongitude = 79.8612;
+            queryRecommendation(customerLatitude, customerLongitude);
+        }
+    }
+
+    private void queryRecommendation(double lat, double lon) {
+        showLoading(true);
+        ApiService api = ApiClient.getApiService();
+        String brand = getText(etDeviceBrand);
+        String model = getText(etDeviceModel);
+
+        BranchRecommendationRequestDto req = new BranchRecommendationRequestDto(
+                lat, lon, selectedService.getId(), brand, model
+        );
+
+        isBranchConfirmed = false;
+        btnConfirmBranch.setText("Confirm Branch");
+        btnConfirmBranch.setEnabled(true);
+
+        api.recommendBranch(req).enqueue(new Callback<ApiResponse<BranchRecommendationResponseDto>>() {
+            @Override
+            public void onResponse(@NonNull Call<ApiResponse<BranchRecommendationResponseDto>> call, @NonNull Response<ApiResponse<BranchRecommendationResponseDto>> response) {
+                showLoading(false);
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    BranchRecommendationResponseDto data = response.body().getData();
+                    if (data != null && data.getRecommendedBranch() != null) {
+                        cardRecommendation.setVisibility(View.VISIBLE);
+
+                        String name = data.getRecommendedBranch().getName();
+                        Double dist = data.getDistanceKm();
+                        boolean techAvail = data.getIsTechnicianAvailable();
+                        boolean partAvail = data.getIsPartAvailable();
+                        String reason = data.getReason();
+
+                        tvRecBranchName.setText("Recommended Branch: " + name);
+                        tvRecDistance.setText(String.format(Locale.getDefault(), "Distance: %.1f km", dist));
+                        
+                        if (techAvail) {
+                            tvRecTechnician.setText("Technician: Available");
+                            tvRecTechnician.setTextColor(ContextCompat.getColor(BookRepairActivity.this, R.color.status_completed));
+                        } else {
+                            tvRecTechnician.setText("Technician: Busy / Unavailable");
+                            tvRecTechnician.setTextColor(ContextCompat.getColor(BookRepairActivity.this, R.color.status_in_progress));
+                        }
+
+                        if (partAvail) {
+                            tvRecParts.setText("Required Parts: Available");
+                            tvRecParts.setTextColor(ContextCompat.getColor(BookRepairActivity.this, R.color.status_completed));
+                        } else {
+                            tvRecParts.setText("Required Parts: Out of Stock");
+                            tvRecParts.setTextColor(ContextCompat.getColor(BookRepairActivity.this, R.color.status_cancelled));
+                        }
+
+                        tvRecReason.setText("Reason: " + reason);
+
+                        Long recommendedId = data.getRecommendedBranch().getId();
+                        if (recommendedId == 2L) {
+                            rgBranch.check(R.id.rbGalle);
+                        } else {
+                            rgBranch.check(R.id.rbColombo);
+                        }
+
+                        // Validation: If no suitable branch is available, block next step navigation
+                        if (!techAvail || !partAvail) {
+                            showError("Booking cannot proceed. No suitable branch is currently available for this repair service.");
+                            btnConfirmBranch.setEnabled(false);
+                            btnConfirmBranch.setText("Unavailable");
+                            isBranchConfirmed = false;
+                        } else {
+                            tvError.setVisibility(View.GONE);
+                        }
+                    } else {
+                        cardRecommendation.setVisibility(View.GONE);
+                        showError("Failed to fetch smart recommendation details.");
+                    }
+                } else {
+                    cardRecommendation.setVisibility(View.GONE);
+                    showError("Recommendation API failed: " + (response.body() != null ? response.body().getMessage() : "API Error"));
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ApiResponse<BranchRecommendationResponseDto>> call, @NonNull Throwable t) {
+                showLoading(false);
+                cardRecommendation.setVisibility(View.GONE);
+                showError("Network error. Failed to retrieve smart branch recommendation.");
+            }
+        });
+    }
+
+    // ─── REPAIR IMAGES LOCAL SELECTION & PREVIEW ──────────────────────
+
+    private void checkCameraPermissionAndLaunch() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            launchCamera();
+        } else {
+            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA);
+        }
+    }
+
+    private void launchCamera() {
+        try {
+            File photoFile = new File(getCacheDir(), "temp_repair_" + System.currentTimeMillis() + ".jpg");
+            tempCameraUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", photoFile);
+            takePictureLauncher.launch(tempCameraUri);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Failed to launch device camera.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void removeImage(int position) {
+        if (position >= 0 && position < selectedImages.size()) {
+            selectedImages.remove(position);
+            imageAdapter.setImageList(selectedImages);
+            updateImagesStateUI();
+        }
+    }
+
+    private void updateImagesStateUI() {
+        if (selectedImages.isEmpty()) {
+            rvRepairImages.setVisibility(View.GONE);
+            tvNoImages.setVisibility(View.VISIBLE);
+        } else {
+            rvRepairImages.setVisibility(View.VISIBLE);
+            tvNoImages.setVisibility(View.GONE);
+        }
+    }
+
+    private void showImagePreviewDialog(Uri uri) {
+        final android.app.Dialog dialog = new android.app.Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        dialog.setContentView(R.layout.dialog_image_preview);
+        ImageView ivPreview = dialog.findViewById(R.id.ivPreview);
+        View btnClose = dialog.findViewById(R.id.btnClosePreview);
+
+        Glide.with(this)
+                .load(uri)
+                .into(ivPreview);
+
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+    }
+
+    private okhttp3.MultipartBody.Part prepareFilePart(String partName, Uri fileUri) {
+        try {
+            android.content.ContentResolver contentResolver = getContentResolver();
+            String type = contentResolver.getType(fileUri);
+            if (type == null) {
+                type = "image/jpeg";
+            }
+
+            java.io.InputStream inputStream = contentResolver.openInputStream(fileUri);
+            if (inputStream == null) return null;
+
+            java.io.ByteArrayOutputStream byteBuffer = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = inputStream.read(buffer)) != -1) {
+                byteBuffer.write(buffer, 0, len);
+            }
+            byte[] bytes = byteBuffer.toByteArray();
+            inputStream.close();
+
+            okhttp3.RequestBody requestFile = okhttp3.RequestBody.create(
+                    okhttp3.MediaType.parse(type),
+                    bytes
+            );
+
+            String fileName = "upload_" + System.currentTimeMillis() + ".jpg";
+            android.database.Cursor cursor = contentResolver.query(fileUri, null, null, null, null);
+            if (cursor != null) {
+                int nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);
+                if (nameIndex != -1 && cursor.moveToFirst()) {
+                    fileName = cursor.getString(nameIndex);
+                }
+                cursor.close();
+            }
+
+            return okhttp3.MultipartBody.Part.createFormData(partName, fileName, requestFile);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private void uploadRepairImages(String bookingRef) {
+        createdBookingReference = bookingRef;
+
+        final List<SelectedImage> toUpload = new ArrayList<>();
+        for (SelectedImage img : selectedImages) {
+            if (img.getState() != SelectedImage.State.UPLOADED) {
+                toUpload.add(img);
+            }
+        }
+
+        if (toUpload.isEmpty()) {
+            showSuccessDialog(bookingRef);
+            return;
+        }
+
+        // Show a progress dialog
+        uploadProgressDialog = new android.app.ProgressDialog(this);
+        uploadProgressDialog.setTitle("Uploading Images");
+        uploadProgressDialog.setMessage("Uploading 1 of " + toUpload.size() + "...");
+        uploadProgressDialog.setCancelable(false);
+        uploadProgressDialog.setProgressStyle(android.app.ProgressDialog.STYLE_SPINNER);
+        uploadProgressDialog.show();
+
+        uploadNextImage(bookingRef, toUpload, 0);
+    }
+
+    private void uploadNextImage(String bookingRef, List<SelectedImage> toUpload, int index) {
+        if (index >= toUpload.size()) {
+            if (uploadProgressDialog != null && uploadProgressDialog.isShowing()) {
+                uploadProgressDialog.dismiss();
+            }
+
+            boolean hasFailed = false;
+            for (SelectedImage img : selectedImages) {
+                if (img.getState() == SelectedImage.State.FAILED) {
+                    hasFailed = true;
+                    break;
+                }
+            }
+
+            if (hasFailed) {
+                currentStep = 2;
+                updateStepUI();
+                showError("Some images failed to upload. You can review and retry from the images section.");
+                Toast.makeText(this, "Failed to upload some images. Please retry.", Toast.LENGTH_LONG).show();
+            } else {
+                showSuccessDialog(bookingRef);
+            }
+            return;
+        }
+
+        SelectedImage currentImg = toUpload.get(index);
+        currentImg.setState(SelectedImage.State.UPLOADING);
+        imageAdapter.notifyDataSetChanged();
+
+        if (uploadProgressDialog != null) {
+            uploadProgressDialog.setMessage("Uploading " + (index + 1) + " of " + toUpload.size() + "...");
+        }
+
+        okhttp3.MultipartBody.Part filePart = prepareFilePart("file", currentImg.getUri());
+        if (filePart == null) {
+            currentImg.setState(SelectedImage.State.FAILED);
+            imageAdapter.notifyDataSetChanged();
+            uploadNextImage(bookingRef, toUpload, index + 1);
+            return;
+        }
+
+        okhttp3.RequestBody refBody = okhttp3.RequestBody.create(
+                okhttp3.MediaType.parse("text/plain"),
+                bookingRef
+        );
+        okhttp3.RequestBody typeBody = okhttp3.RequestBody.create(
+                okhttp3.MediaType.parse("text/plain"),
+                "CUSTOMER_DAMAGE"
+        );
+
+        ApiService api = ApiClient.getApiService();
+        api.uploadRepairImage(filePart, refBody, typeBody).enqueue(new Callback<ApiResponse<com.techfix.app.data.remote.dto.RepairImageDto>>() {
+            @Override
+            public void onResponse(@NonNull Call<ApiResponse<com.techfix.app.data.remote.dto.RepairImageDto>> call, @NonNull Response<ApiResponse<com.techfix.app.data.remote.dto.RepairImageDto>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    currentImg.setState(SelectedImage.State.UPLOADED);
+                } else {
+                    currentImg.setState(SelectedImage.State.FAILED);
+                }
+                imageAdapter.notifyDataSetChanged();
+                uploadNextImage(bookingRef, toUpload, index + 1);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ApiResponse<com.techfix.app.data.remote.dto.RepairImageDto>> call, @NonNull Throwable t) {
+                currentImg.setState(SelectedImage.State.FAILED);
+                imageAdapter.notifyDataSetChanged();
+                uploadNextImage(bookingRef, toUpload, index + 1);
+            }
+        });
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        ArrayList<String> uriStrings = new ArrayList<>();
+        for (SelectedImage img : selectedImages) {
+            uriStrings.add(img.getUri().toString());
+        }
+        outState.putStringArrayList("selected_image_uris", uriStrings);
+        if (tempCameraUri != null) {
+            outState.putString("temp_camera_uri", tempCameraUri.toString());
+        }
+        if (createdBookingReference != null) {
+            outState.putString("created_booking_reference", createdBookingReference);
+        }
+    }
+
+    @Override
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        ArrayList<String> uriStrings = savedInstanceState.getStringArrayList("selected_image_uris");
+        if (uriStrings != null) {
+            selectedImages.clear();
+            for (String s : uriStrings) {
+                selectedImages.add(new SelectedImage(Uri.parse(s)));
+            }
+            if (imageAdapter != null) {
+                imageAdapter.setImageList(selectedImages);
+                updateImagesStateUI();
+            }
+        }
+        String tempUriStr = savedInstanceState.getString("temp_camera_uri");
+        if (tempUriStr != null) {
+            tempCameraUri = Uri.parse(tempUriStr);
+        }
+        createdBookingReference = savedInstanceState.getString("created_booking_reference");
     }
 }
