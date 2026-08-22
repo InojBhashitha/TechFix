@@ -25,8 +25,10 @@ import com.techfix.app.R;
 import com.techfix.app.data.remote.ApiClient;
 import com.techfix.app.data.remote.ApiService;
 import com.techfix.app.data.remote.dto.ApiResponse;
+import com.techfix.app.data.remote.dto.AssignTechnicianRequestDto;
 import com.techfix.app.data.remote.dto.BookingResponseDto;
 import com.techfix.app.data.remote.dto.StaffDashboardStatsDto;
+import com.techfix.app.data.remote.dto.TechnicianDto;
 import com.techfix.app.data.remote.dto.UpdateRepairStatusRequestDto;
 import com.techfix.app.ui.adapters.StaffRepairQueueAdapter;
 import com.techfix.app.ui.auth.LoginActivity;
@@ -34,6 +36,7 @@ import com.techfix.app.ui.tracking.RepairTrackingActivity;
 import com.techfix.app.utils.SessionManager;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import retrofit2.Call;
@@ -232,7 +235,7 @@ public class StaffMainActivity extends AppCompatActivity implements StaffRepairQ
 
     @Override
     public void onAssignTechnician(BookingResponseDto booking) {
-        Toast.makeText(this, "Assign technician for " + booking.getBookingReference(), Toast.LENGTH_SHORT).show();
+        showAssignTechnicianDialog(booking);
     }
 
     @Override
@@ -261,7 +264,6 @@ public class StaffMainActivity extends AppCompatActivity implements StaffRepairQ
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerStatus.setAdapter(adapter);
 
-        // Pre-select current status in spinner if possible
         if (booking.getCurrentStatus() != null) {
             for (int i = 0; i < STATUS_ENUM_KEYS.length; i++) {
                 if (STATUS_ENUM_KEYS[i].equalsIgnoreCase(booking.getCurrentStatus())) {
@@ -330,6 +332,114 @@ public class StaffMainActivity extends AppCompatActivity implements StaffRepairQ
                     Toast.makeText(StaffMainActivity.this, "Network error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
                 }
             });
+        });
+
+        dialog.show();
+    }
+
+    private void showAssignTechnicianDialog(BookingResponseDto booking) {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_assign_technician, null);
+
+        TextView tvDialogAssignRef = dialogView.findViewById(R.id.tvDialogAssignRef);
+        Spinner spinnerTechnicians = dialogView.findViewById(R.id.spinnerTechnicians);
+        EditText etAssignNotes = dialogView.findViewById(R.id.etAssignNotes);
+        MaterialButton btnCancelAssign = dialogView.findViewById(R.id.btnCancelAssign);
+        MaterialButton btnSubmitAssign = dialogView.findViewById(R.id.btnSubmitAssign);
+
+        tvDialogAssignRef.setText("Booking: " + booking.getBookingReference() + " • " + (booking.getServiceName() != null ? booking.getServiceName() : ""));
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(true)
+                .create();
+
+        btnCancelAssign.setOnClickListener(v -> dialog.dismiss());
+        btnSubmitAssign.setEnabled(false);
+
+        // Fetch available technicians
+        apiService.getTechnicians(null, true).enqueue(new Callback<ApiResponse<List<TechnicianDto>>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<List<TechnicianDto>>> call, Response<ApiResponse<List<TechnicianDto>>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    List<TechnicianDto> technicians = response.body().getData();
+                    if (technicians == null || technicians.isEmpty()) {
+                        Toast.makeText(StaffMainActivity.this, "No available technicians found in your branch", Toast.LENGTH_LONG).show();
+                        dialog.dismiss();
+                        return;
+                    }
+
+                    List<String> spinnerLabels = new ArrayList<>();
+                    int preSelectPos = 0;
+
+                    for (int i = 0; i < technicians.size(); i++) {
+                        TechnicianDto tech = technicians.get(i);
+                        String label = tech.getFullName() + " (" +
+                                (tech.getSpecialization() != null ? tech.getSpecialization() : "General") +
+                                " • " + (tech.getActiveRepairsCount() != null ? tech.getActiveRepairsCount() : 0) + " Active)";
+                        spinnerLabels.add(label);
+
+                        if (booking.getTechnicianId() != null && booking.getTechnicianId().equals(tech.getId())) {
+                            preSelectPos = i;
+                        }
+                    }
+
+                    ArrayAdapter<String> techAdapter = new ArrayAdapter<>(StaffMainActivity.this, android.R.layout.simple_spinner_item, spinnerLabels);
+                    techAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                    spinnerTechnicians.setAdapter(techAdapter);
+                    spinnerTechnicians.setSelection(preSelectPos);
+
+                    btnSubmitAssign.setEnabled(true);
+
+                    btnSubmitAssign.setOnClickListener(v -> {
+                        int pos = spinnerTechnicians.getSelectedItemPosition();
+                        if (pos < 0 || pos >= technicians.size()) return;
+
+                        TechnicianDto selectedTech = technicians.get(pos);
+                        String notes = etAssignNotes.getText().toString().trim();
+
+                        btnSubmitAssign.setEnabled(false);
+                        btnSubmitAssign.setText("Assigning...");
+
+                        AssignTechnicianRequestDto assignRequest = new AssignTechnicianRequestDto(selectedTech.getId(), notes);
+
+                        apiService.assignTechnician(booking.getBookingReference(), assignRequest).enqueue(new Callback<ApiResponse<BookingResponseDto>>() {
+                            @Override
+                            public void onResponse(Call<ApiResponse<BookingResponseDto>> call, Response<ApiResponse<BookingResponseDto>> assignResponse) {
+                                btnSubmitAssign.setEnabled(true);
+                                btnSubmitAssign.setText("Assign Technician");
+
+                                if (assignResponse.isSuccessful() && assignResponse.body() != null && assignResponse.body().isSuccess()) {
+                                    Toast.makeText(StaffMainActivity.this, "Assigned technician " + selectedTech.getFullName() + " successfully", Toast.LENGTH_SHORT).show();
+                                    dialog.dismiss();
+                                    refreshAllData();
+                                } else {
+                                    String errMsg = "Failed to assign technician";
+                                    if (assignResponse.body() != null && assignResponse.body().getMessage() != null) {
+                                        errMsg = assignResponse.body().getMessage();
+                                    }
+                                    Toast.makeText(StaffMainActivity.this, errMsg, Toast.LENGTH_LONG).show();
+                                }
+                            }
+
+                            @Override
+                            public void onFailure(Call<ApiResponse<BookingResponseDto>> call, Throwable t) {
+                                btnSubmitAssign.setEnabled(true);
+                                btnSubmitAssign.setText("Assign Technician");
+                                Toast.makeText(StaffMainActivity.this, "Network error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    });
+                } else {
+                    Toast.makeText(StaffMainActivity.this, "Failed to load technicians", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<List<TechnicianDto>>> call, Throwable t) {
+                Toast.makeText(StaffMainActivity.this, "Network error loading technicians: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+            }
         });
 
         dialog.show();
