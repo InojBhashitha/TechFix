@@ -74,7 +74,7 @@
             android:layout_marginTop="16dp"
             android:text="Retry"
             app:strokeColor="@color/primary"
-            app:textColor="@color/primary" />
+            android:textColor="@color/primary" />
     </LinearLayout>
 
     <!-- Success State View Container -->
