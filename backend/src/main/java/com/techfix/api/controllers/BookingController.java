@@ -56,4 +56,31 @@ public class BookingController {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
+
+    @GetMapping("/{reference}/tracking")
+    public ResponseEntity<ApiResponse<com.techfix.api.dto.RepairTrackingDto>> getBookingTracking(
+            @PathVariable String reference,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            com.techfix.api.dto.RepairTrackingDto tracking = bookingService.getBookingTracking(reference, userDetails.getUsername());
+            return ResponseEntity.ok(ApiResponse.success("Repair tracking details retrieved successfully", tracking));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{reference}/status")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    public ResponseEntity<ApiResponse<BookingResponseDto>> updateBookingStatus(
+            @PathVariable String reference,
+            @RequestParam com.techfix.api.enums.RepairStatus status,
+            @RequestParam(required = false) String notes,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            BookingResponseDto response = bookingService.updateBookingStatus(reference, status, notes, userDetails.getUsername());
+            return ResponseEntity.ok(ApiResponse.success("Booking status updated successfully", response));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
 }

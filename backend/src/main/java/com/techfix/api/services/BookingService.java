@@ -2,8 +2,11 @@ package com.techfix.api.services;
 
 import com.techfix.api.dto.BookingRequestDto;
 import com.techfix.api.dto.BookingResponseDto;
+import com.techfix.api.dto.RepairStatusHistoryDto;
+import com.techfix.api.dto.RepairTrackingDto;
 import com.techfix.api.entities.*;
 import com.techfix.api.enums.RepairStatus;
+import com.techfix.api.enums.UserRole;
 import com.techfix.api.repositories.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -115,5 +118,74 @@ public class BookingService {
         dto.setTotalCost(booking.getTotalCost());
         dto.setCreatedAt(booking.getCreatedAt());
         return dto;
+    }
+
+    public RepairTrackingDto getBookingTracking(String reference, String userEmail) {
+        RepairRequest booking = bookingRepository.findByBookingReference(reference)
+                .orElseThrow(() -> new RuntimeException("Booking not found with reference: " + reference));
+
+        User currentUser = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + userEmail));
+
+        // Role-based security checks
+        if (currentUser.getRole() == UserRole.CUSTOMER) {
+            if (!booking.getCustomer().getId().equals(currentUser.getId())) {
+                throw new RuntimeException("Access Denied: Customers can only view tracking details of their own bookings.");
+            }
+        } else if (currentUser.getRole() == UserRole.STAFF) {
+            if (currentUser.getBranchId() == null || !booking.getBranch().getId().equals(currentUser.getBranchId())) {
+                throw new RuntimeException("Access Denied: Technicians can only view tracking details for bookings assigned to their branch.");
+            }
+        }
+
+        List<RepairStatusHistory> historyList = statusHistoryRepository.findByRepairRequestIdOrderByTimestampAsc(booking.getId());
+
+        List<RepairStatusHistoryDto> historyDtoList = historyList.stream()
+                .map(history -> new RepairStatusHistoryDto(
+                        history.getStatus(),
+                        history.getStatus().getDisplayName(),
+                        history.getNotes(),
+                        history.getUpdatedBy() != null ? history.getUpdatedBy().getFullName() : "System",
+                        history.getTimestamp()
+                ))
+                .collect(Collectors.toList());
+
+        return new RepairTrackingDto(
+                booking.getBookingReference(),
+                booking.getDeviceBrand(),
+                booking.getDeviceModel(),
+                booking.getProblemDescription(),
+                booking.getCurrentStatus(),
+                booking.getCurrentStatus().getDisplayName(),
+                historyDtoList
+        );
+    }
+
+    @Transactional
+    public BookingResponseDto updateBookingStatus(String reference, RepairStatus newStatus, String notes, String updaterEmail) {
+        RepairRequest booking = bookingRepository.findByBookingReference(reference)
+                .orElseThrow(() -> new RuntimeException("Booking not found with reference: " + reference));
+
+        User updater = userRepository.findByEmail(updaterEmail)
+                .orElseThrow(() -> new RuntimeException("Updater user not found with email: " + updaterEmail));
+
+        // Skip saving if status is unchanged
+        if (booking.getCurrentStatus() == newStatus) {
+            return mapToResponseDto(booking);
+        }
+
+        booking.setCurrentStatus(newStatus);
+        booking.setUpdatedAt(LocalDateTime.now());
+        booking = bookingRepository.save(booking);
+
+        RepairStatusHistory history = new RepairStatusHistory(
+                booking,
+                newStatus,
+                notes != null ? notes : "Status updated to " + newStatus.getDisplayName(),
+                updater
+        );
+        statusHistoryRepository.save(history);
+
+        return mapToResponseDto(booking);
     }
 }
