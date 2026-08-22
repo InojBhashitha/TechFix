@@ -2,12 +2,15 @@ package com.techfix.api.services;
 
 import com.techfix.api.dto.AssignTechnicianRequestDto;
 import com.techfix.api.dto.BookingResponseDto;
+import com.techfix.api.dto.InventoryStockDto;
 import com.techfix.api.dto.StaffDashboardStatsDto;
 import com.techfix.api.dto.TechnicianDto;
+import com.techfix.api.dto.UpdateInventoryStockRequestDto;
 import com.techfix.api.dto.UpdateRepairStatusRequestDto;
 import com.techfix.api.entities.BranchInventory;
 import com.techfix.api.entities.RepairRequest;
 import com.techfix.api.entities.RepairStatusHistory;
+import com.techfix.api.entities.SparePart;
 import com.techfix.api.entities.Technician;
 import com.techfix.api.entities.User;
 import com.techfix.api.enums.RepairStatus;
@@ -254,6 +257,60 @@ public class StaffService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<InventoryStockDto> getInventory(String staffEmail, Long requestedBranchId, Boolean lowStockOnly) {
+        User staff = userRepository.findByEmail(staffEmail)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + staffEmail));
+
+        Long branchId = requestedBranchId;
+        if (branchId == null && staff.getRole() == UserRole.STAFF) {
+            branchId = staff.getBranchId();
+        }
+
+        List<BranchInventory> inventoryList;
+        if (branchId != null) {
+            inventoryList = branchInventoryRepository.findByBranchId(branchId);
+        } else {
+            inventoryList = branchInventoryRepository.findAll();
+        }
+
+        return inventoryList.stream()
+                .filter(i -> {
+                    if (Boolean.TRUE.equals(lowStockOnly)) {
+                        return i.getQuantity() != null && i.getMinimumStockAlert() != null && i.getQuantity() <= i.getMinimumStockAlert();
+                    }
+                    return true;
+                })
+                .map(this::mapToInventoryStockDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public InventoryStockDto updateInventoryStock(Long id, UpdateInventoryStockRequestDto request, String staffEmail) {
+        User staff = userRepository.findByEmail(staffEmail)
+                .orElseThrow(() -> new RuntimeException("Staff user not found with email: " + staffEmail));
+
+        BranchInventory inventory = branchInventoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Branch inventory record not found with ID: " + id));
+
+        if (staff.getRole() == UserRole.STAFF) {
+            if (staff.getBranchId() != null && !staff.getBranchId().equals(inventory.getBranch().getId())) {
+                throw new RuntimeException("Access Denied: Staff members can only update inventory for their branch.");
+            }
+        }
+
+        if (request.getQuantity() != null) {
+            inventory.setQuantity(request.getQuantity());
+        }
+
+        if (request.getMinimumStockAlert() != null) {
+            inventory.setMinimumStockAlert(request.getMinimumStockAlert());
+        }
+
+        inventory = branchInventoryRepository.save(inventory);
+        return mapToInventoryStockDto(inventory);
+    }
+
     private RepairRequest findBookingByIdentifier(String identifier) {
         if (identifier.matches("\\d+")) {
             Long id = Long.parseLong(identifier);
@@ -326,6 +383,26 @@ public class StaffService {
                 tech.getSpecialization(),
                 tech.getIsAvailable(),
                 tech.getActiveRepairsCount()
+        );
+    }
+
+    private InventoryStockDto mapToInventoryStockDto(BranchInventory inv) {
+        boolean isLow = inv.getQuantity() != null && inv.getMinimumStockAlert() != null && inv.getQuantity() <= inv.getMinimumStockAlert();
+        SparePart part = inv.getSparePart();
+        String categoryName = (part != null && part.getCompatibleCategory() != null) ? part.getCompatibleCategory().getName() : null;
+
+        return new InventoryStockDto(
+                inv.getId(),
+                inv.getBranch() != null ? inv.getBranch().getId() : null,
+                inv.getBranch() != null ? inv.getBranch().getName() : null,
+                part != null ? part.getId() : null,
+                part != null ? part.getName() : null,
+                part != null ? part.getPartCode() : null,
+                categoryName,
+                inv.getQuantity(),
+                inv.getMinimumStockAlert(),
+                isLow,
+                part != null ? part.getUnitCost() : null
         );
     }
 }

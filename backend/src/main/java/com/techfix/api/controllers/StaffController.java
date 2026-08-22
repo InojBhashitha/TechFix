@@ -3,8 +3,10 @@ package com.techfix.api.controllers;
 import com.techfix.api.dto.ApiResponse;
 import com.techfix.api.dto.AssignTechnicianRequestDto;
 import com.techfix.api.dto.BookingResponseDto;
+import com.techfix.api.dto.InventoryStockDto;
 import com.techfix.api.dto.StaffDashboardStatsDto;
 import com.techfix.api.dto.TechnicianDto;
+import com.techfix.api.dto.UpdateInventoryStockRequestDto;
 import com.techfix.api.dto.UpdateRepairStatusRequestDto;
 import com.techfix.api.services.StaffService;
 import jakarta.validation.Valid;
@@ -73,6 +75,32 @@ public class StaffController {
         try {
             List<TechnicianDto> technicians = staffService.getTechnicians(userDetails.getUsername(), branchId, availableOnly);
             return ResponseEntity.ok(ApiResponse.success("Technicians retrieved successfully", technicians));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/inventory")
+    public ResponseEntity<ApiResponse<List<InventoryStockDto>>> getInventory(
+            @RequestParam(required = false) Long branchId,
+            @RequestParam(required = false) Boolean lowStockOnly,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            List<InventoryStockDto> inventory = staffService.getInventory(userDetails.getUsername(), branchId, lowStockOnly);
+            return ResponseEntity.ok(ApiResponse.success("Branch inventory retrieved successfully", inventory));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PutMapping("/inventory/{id}/stock")
+    public ResponseEntity<ApiResponse<InventoryStockDto>> updateInventoryStock(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateInventoryStockRequestDto request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            InventoryStockDto updatedInventory = staffService.updateInventoryStock(id, request, userDetails.getUsername());
+            return ResponseEntity.ok(ApiResponse.success("Inventory stock updated successfully", updatedInventory));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
