@@ -467,10 +467,11 @@ public class StaffMainActivity extends AppCompatActivity implements StaffRepairQ
         btnCloseInventory.setOnClickListener(v -> inventoryDialog.dismiss());
 
         final Boolean[] lowStockOnlyFilter = {null};
-
+        final StaffInventoryAdapter[] inventoryAdapterHolder = new StaffInventoryAdapter[1];
         StaffInventoryAdapter inventoryAdapter = new StaffInventoryAdapter(item -> {
-            showUpdateStockDialog(item, () -> loadInventoryData(lowStockOnlyFilter[0], inventoryAdapter, swipeRefreshInventory, rvInventoryList, layoutEmptyInventory));
+            showUpdateStockDialog(item, () -> loadInventoryData(lowStockOnlyFilter[0], inventoryAdapterHolder[0], swipeRefreshInventory, rvInventoryList, layoutEmptyInventory));
         });
+        inventoryAdapterHolder[0] = inventoryAdapter;
         rvInventoryList.setAdapter(inventoryAdapter);
 
         swipeRefreshInventory.setOnRefreshListener(() ->

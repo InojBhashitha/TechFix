@@ -17,7 +17,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="@color/surface"
-            app:navigationIcon="@android:drawable/ic_menu_back"
+            app:navigationIcon="?attr/homeAsUpIndicator"
             app:title="Find Repair Branches"
             app:titleTextColor="@color/text_primary" />
     </com.google.android.material.appbar.AppBarLayout>
@@ -195,7 +195,7 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnBookHere"
-                        style="@style/Widget.Material3.Button.FilledButton"
+                        style="@style/Widget.Material3.Button"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="6dp"

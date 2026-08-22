@@ -81,7 +81,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
-                    android:text="Book an appointment with TechFix Colombo or Galle. Smart branch & tech assignment!"
+                    android:text="Book an appointment with TechFix Colombo or Galle. Smart branch &amp; tech assignment!"
                     android:textColor="@color/primary_light"
                     android:textSize="13sp"
                     app:layout_constraintEnd_toStartOf="@id/ivBannerIcon"

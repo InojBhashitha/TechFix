@@ -10,6 +10,8 @@ import com.techfix.app.data.remote.dto.BranchRecommendationResponseDto;
 import com.techfix.app.data.remote.dto.DeviceCategoryDto;
 import com.techfix.app.data.remote.dto.InventoryStockDto;
 import com.techfix.app.data.remote.dto.LoginRequest;
+import com.techfix.app.data.remote.dto.PaymentCheckoutRequestDto;
+import com.techfix.app.data.remote.dto.PaymentReceiptDto;
 import com.techfix.app.data.remote.dto.RegisterRequest;
 import com.techfix.app.data.remote.dto.RepairServiceDto;
 import com.techfix.app.data.remote.dto.StaffDashboardStatsDto;
@@ -119,5 +121,21 @@ public interface ApiService {
     Call<ApiResponse<InventoryStockDto>> updateInventoryStock(
             @Path("id") Long id,
             @Body UpdateInventoryStockRequestDto request
+    );
+
+    // ─── Payment Processing ───────────────────────────────────────
+    @POST("api/payments/checkout")
+    Call<ApiResponse<PaymentReceiptDto>> checkoutPayment(
+            @Body PaymentCheckoutRequestDto request
+    );
+
+    @GET("api/payments/receipt/{transactionReference}")
+    Call<ApiResponse<PaymentReceiptDto>> getReceiptByTransaction(
+            @Path("transactionReference") String transactionReference
+    );
+
+    @GET("api/payments/booking/{bookingReference}")
+    Call<ApiResponse<PaymentReceiptDto>> getReceiptByBooking(
+            @Path("bookingReference") String bookingReference
     );
 }
