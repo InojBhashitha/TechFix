@@ -2,18 +2,24 @@ package com.techfix.app.ui.staff;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.ChipGroup;
 import com.techfix.app.R;
 import com.techfix.app.data.remote.ApiClient;
@@ -21,11 +27,13 @@ import com.techfix.app.data.remote.ApiService;
 import com.techfix.app.data.remote.dto.ApiResponse;
 import com.techfix.app.data.remote.dto.BookingResponseDto;
 import com.techfix.app.data.remote.dto.StaffDashboardStatsDto;
+import com.techfix.app.data.remote.dto.UpdateRepairStatusRequestDto;
 import com.techfix.app.ui.adapters.StaffRepairQueueAdapter;
 import com.techfix.app.ui.auth.LoginActivity;
 import com.techfix.app.ui.tracking.RepairTrackingActivity;
 import com.techfix.app.utils.SessionManager;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import retrofit2.Call;
@@ -50,6 +58,30 @@ public class StaffMainActivity extends AppCompatActivity implements StaffRepairQ
 
     private StaffRepairQueueAdapter queueAdapter;
     private String currentStatusFilter = null;
+
+    private static final String[] STATUS_DISPLAY_NAMES = {
+            "Request Submitted",
+            "Branch Assigned",
+            "Device Received",
+            "Diagnostic & Inspection",
+            "Repair in Progress",
+            "Quality Check (QA)",
+            "Ready for Collection",
+            "Repair Completed",
+            "Cancelled"
+    };
+
+    private static final String[] STATUS_ENUM_KEYS = {
+            "REQUEST_SUBMITTED",
+            "BRANCH_ASSIGNED",
+            "DEVICE_RECEIVED",
+            "DIAGNOSIS",
+            "REPAIRING",
+            "QUALITY_CHECK",
+            "READY_FOR_COLLECTION",
+            "COMPLETED",
+            "CANCELLED"
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -145,7 +177,7 @@ public class StaffMainActivity extends AppCompatActivity implements StaffRepairQ
 
             @Override
             public void onFailure(Call<ApiResponse<StaffDashboardStatsDto>> call, Throwable t) {
-                // Handled gracefully in loadRepairQueue
+                // Handled gracefully
             }
         });
     }
@@ -195,7 +227,7 @@ public class StaffMainActivity extends AppCompatActivity implements StaffRepairQ
 
     @Override
     public void onUpdateStatus(BookingResponseDto booking) {
-        Toast.makeText(this, "Update status for " + booking.getBookingReference(), Toast.LENGTH_SHORT).show();
+        showUpdateStatusDialog(booking);
     }
 
     @Override
@@ -210,5 +242,96 @@ public class StaffMainActivity extends AppCompatActivity implements StaffRepairQ
             intent.putExtra("BOOKING_REFERENCE", booking.getBookingReference());
             startActivity(intent);
         }
+    }
+
+    private void showUpdateStatusDialog(BookingResponseDto booking) {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_update_status, null);
+
+        TextView tvDialogBookingRef = dialogView.findViewById(R.id.tvDialogBookingRef);
+        Spinner spinnerStatus = dialogView.findViewById(R.id.spinnerStatus);
+        EditText etStatusNotes = dialogView.findViewById(R.id.etStatusNotes);
+        EditText etAdditionalCost = dialogView.findViewById(R.id.etAdditionalCost);
+        MaterialButton btnCancelStatus = dialogView.findViewById(R.id.btnCancelStatus);
+        MaterialButton btnSubmitStatus = dialogView.findViewById(R.id.btnSubmitStatus);
+
+        String currentStatusName = booking.getStatusDisplayName() != null ? booking.getStatusDisplayName() : booking.getCurrentStatus();
+        tvDialogBookingRef.setText("Booking: " + booking.getBookingReference() + " • Current: " + currentStatusName);
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, STATUS_DISPLAY_NAMES);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerStatus.setAdapter(adapter);
+
+        // Pre-select current status in spinner if possible
+        if (booking.getCurrentStatus() != null) {
+            for (int i = 0; i < STATUS_ENUM_KEYS.length; i++) {
+                if (STATUS_ENUM_KEYS[i].equalsIgnoreCase(booking.getCurrentStatus())) {
+                    spinnerStatus.setSelection(i);
+                    break;
+                }
+            }
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(true)
+                .create();
+
+        btnCancelStatus.setOnClickListener(v -> dialog.dismiss());
+
+        btnSubmitStatus.setOnClickListener(v -> {
+            int selectedIndex = spinnerStatus.getSelectedItemPosition();
+            if (selectedIndex < 0 || selectedIndex >= STATUS_ENUM_KEYS.length) {
+                Toast.makeText(this, "Please select a valid status", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String selectedStatusKey = STATUS_ENUM_KEYS[selectedIndex];
+            String notes = etStatusNotes.getText().toString().trim();
+            String costStr = etAdditionalCost.getText().toString().trim();
+
+            BigDecimal additionalCost = null;
+            if (!costStr.isEmpty()) {
+                try {
+                    additionalCost = new BigDecimal(costStr);
+                } catch (NumberFormatException e) {
+                    Toast.makeText(this, "Invalid additional cost format", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+            }
+
+            btnSubmitStatus.setEnabled(false);
+            btnSubmitStatus.setText("Updating...");
+
+            UpdateRepairStatusRequestDto request = new UpdateRepairStatusRequestDto(selectedStatusKey, notes, additionalCost);
+
+            apiService.updateRepairStatus(booking.getBookingReference(), request).enqueue(new Callback<ApiResponse<BookingResponseDto>>() {
+                @Override
+                public void onResponse(Call<ApiResponse<BookingResponseDto>> call, Response<ApiResponse<BookingResponseDto>> response) {
+                    btnSubmitStatus.setEnabled(true);
+                    btnSubmitStatus.setText("Update Status");
+
+                    if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                        Toast.makeText(StaffMainActivity.this, "Status updated to " + response.body().getData().getStatusDisplayName(), Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                        refreshAllData();
+                    } else {
+                        String errMsg = "Failed to update status";
+                        if (response.body() != null && response.body().getMessage() != null) {
+                            errMsg = response.body().getMessage();
+                        }
+                        Toast.makeText(StaffMainActivity.this, errMsg, Toast.LENGTH_LONG).show();
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<ApiResponse<BookingResponseDto>> call, Throwable t) {
+                    btnSubmitStatus.setEnabled(true);
+                    btnSubmitStatus.setText("Update Status");
+                    Toast.makeText(StaffMainActivity.this, "Network error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
+
+        dialog.show();
     }
 }
