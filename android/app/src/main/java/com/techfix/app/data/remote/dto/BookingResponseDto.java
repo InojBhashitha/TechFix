@@ -17,6 +17,8 @@ public class BookingResponseDto {
     private String appointmentDate;
     private String currentStatus;
     private String statusDisplayName;
+    private Long technicianId;
+    private String technicianName;
     private BigDecimal totalCost;
     private String createdAt;
 
@@ -34,6 +36,8 @@ public class BookingResponseDto {
     public String getAppointmentDate() { return appointmentDate; }
     public String getCurrentStatus() { return currentStatus; }
     public String getStatusDisplayName() { return statusDisplayName; }
+    public Long getTechnicianId() { return technicianId; }
+    public String getTechnicianName() { return technicianName; }
     public BigDecimal getTotalCost() { return totalCost; }
     public String getCreatedAt() { return createdAt; }
 }
