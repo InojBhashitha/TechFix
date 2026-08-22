@@ -85,6 +85,12 @@ public interface ApiService {
             @Query("branchId") Long branchId
     );
 
+    @GET("api/staff/bookings")
+    Call<ApiResponse<List<BookingResponseDto>>> getStaffBookings(
+            @Query("branchId") Long branchId,
+            @Query("status") String status
+    );
+
     @PUT("api/staff/bookings/{id}/status")
     Call<ApiResponse<BookingResponseDto>> updateRepairStatus(
             @Path("id") String id,

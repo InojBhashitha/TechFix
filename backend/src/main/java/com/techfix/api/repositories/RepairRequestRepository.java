@@ -14,6 +14,9 @@ public interface RepairRequestRepository extends JpaRepository<RepairRequest, Lo
     List<RepairRequest> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
     List<RepairRequest> findByBranchIdOrderByCreatedAtDesc(Long branchId);
     List<RepairRequest> findByBranchIdAndCurrentStatus(Long branchId, RepairStatus status);
+    List<RepairRequest> findByBranchIdAndCurrentStatusOrderByCreatedAtDesc(Long branchId, RepairStatus status);
+    List<RepairRequest> findByCurrentStatusOrderByCreatedAtDesc(RepairStatus status);
+    List<RepairRequest> findAllByOrderByCreatedAtDesc();
     List<RepairRequest> findByTechnicianId(Long technicianId);
     long countByBranchIdAndCurrentStatus(Long branchId, RepairStatus status);
     long countByBranchId(Long branchId);

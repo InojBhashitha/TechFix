@@ -9,6 +9,7 @@ import com.techfix.api.dto.TechnicianDto;
 import com.techfix.api.dto.UpdateInventoryStockRequestDto;
 import com.techfix.api.dto.UpdateRepairStatusRequestDto;
 import com.techfix.api.services.StaffService;
+import com.techfix.api.enums.RepairStatus;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -36,6 +37,19 @@ public class StaffController {
         try {
             StaffDashboardStatsDto stats = staffService.getDashboardStats(userDetails.getUsername(), branchId);
             return ResponseEntity.ok(ApiResponse.success("Staff dashboard stats retrieved successfully", stats));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/bookings")
+    public ResponseEntity<ApiResponse<List<BookingResponseDto>>> getStaffBookings(
+            @RequestParam(required = false) Long branchId,
+            @RequestParam(required = false) RepairStatus status,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            List<BookingResponseDto> bookings = staffService.getStaffBookings(userDetails.getUsername(), branchId, status);
+            return ResponseEntity.ok(ApiResponse.success("Staff bookings retrieved successfully", bookings));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }

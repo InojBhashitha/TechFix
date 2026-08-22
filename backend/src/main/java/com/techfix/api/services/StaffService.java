@@ -127,6 +127,36 @@ public class StaffService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public List<BookingResponseDto> getStaffBookings(String staffEmail, Long requestedBranchId, RepairStatus status) {
+        User staff = userRepository.findByEmail(staffEmail)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + staffEmail));
+
+        Long branchId = requestedBranchId;
+        if (branchId == null && staff.getRole() == UserRole.STAFF) {
+            branchId = staff.getBranchId();
+        }
+
+        List<RepairRequest> bookings;
+        if (branchId != null) {
+            if (status != null) {
+                bookings = repairRequestRepository.findByBranchIdAndCurrentStatusOrderByCreatedAtDesc(branchId, status);
+            } else {
+                bookings = repairRequestRepository.findByBranchIdOrderByCreatedAtDesc(branchId);
+            }
+        } else {
+            if (status != null) {
+                bookings = repairRequestRepository.findByCurrentStatusOrderByCreatedAtDesc(status);
+            } else {
+                bookings = repairRequestRepository.findAllByOrderByCreatedAtDesc();
+            }
+        }
+
+        return bookings.stream()
+                .map(this::mapToBookingResponseDto)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public BookingResponseDto updateRepairStatus(String identifier, UpdateRepairStatusRequestDto request, String staffEmail) {
         User staff = userRepository.findByEmail(staffEmail)
