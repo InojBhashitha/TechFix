@@ -10,6 +10,7 @@ import com.techfix.api.dto.UpdateRepairStatusRequestDto;
 import com.techfix.api.entities.BranchInventory;
 import com.techfix.api.entities.RepairRequest;
 import com.techfix.api.entities.RepairStatusHistory;
+import com.techfix.api.entities.SparePart;
 import com.techfix.api.entities.Technician;
 import com.techfix.api.entities.User;
 import com.techfix.api.enums.RepairStatus;
