@@ -1,15 +1,21 @@
 package com.techfix.app.data.remote;
 
 import com.techfix.app.data.remote.dto.ApiResponse;
+import com.techfix.app.data.remote.dto.AssignTechnicianRequestDto;
 import com.techfix.app.data.remote.dto.AuthResponse;
 import com.techfix.app.data.remote.dto.BookingRequestDto;
 import com.techfix.app.data.remote.dto.BookingResponseDto;
 import com.techfix.app.data.remote.dto.BranchRecommendationRequestDto;
 import com.techfix.app.data.remote.dto.BranchRecommendationResponseDto;
 import com.techfix.app.data.remote.dto.DeviceCategoryDto;
+import com.techfix.app.data.remote.dto.InventoryStockDto;
 import com.techfix.app.data.remote.dto.LoginRequest;
 import com.techfix.app.data.remote.dto.RegisterRequest;
 import com.techfix.app.data.remote.dto.RepairServiceDto;
+import com.techfix.app.data.remote.dto.StaffDashboardStatsDto;
+import com.techfix.app.data.remote.dto.TechnicianDto;
+import com.techfix.app.data.remote.dto.UpdateInventoryStockRequestDto;
+import com.techfix.app.data.remote.dto.UpdateRepairStatusRequestDto;
 import com.techfix.app.data.remote.dto.UserProfile;
 
 import java.util.List;
@@ -18,6 +24,7 @@ import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
+import retrofit2.http.PUT;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 
@@ -71,5 +78,46 @@ public interface ApiService {
     Call<ApiResponse<com.techfix.app.data.remote.dto.RepairTrackingDto>> getBookingTracking(
             @Path("reference") String reference
     );
-}
 
+    // ─── Staff Management ─────────────────────────────────────────
+    @GET("api/staff/dashboard-stats")
+    Call<ApiResponse<StaffDashboardStatsDto>> getStaffDashboardStats(
+            @Query("branchId") Long branchId
+    );
+
+    @GET("api/staff/bookings")
+    Call<ApiResponse<List<BookingResponseDto>>> getStaffBookings(
+            @Query("branchId") Long branchId,
+            @Query("status") String status
+    );
+
+    @PUT("api/staff/bookings/{id}/status")
+    Call<ApiResponse<BookingResponseDto>> updateRepairStatus(
+            @Path("id") String id,
+            @Body UpdateRepairStatusRequestDto request
+    );
+
+    @PUT("api/staff/bookings/{id}/assign-technician")
+    Call<ApiResponse<BookingResponseDto>> assignTechnician(
+            @Path("id") String id,
+            @Body AssignTechnicianRequestDto request
+    );
+
+    @GET("api/staff/technicians")
+    Call<ApiResponse<List<TechnicianDto>>> getTechnicians(
+            @Query("branchId") Long branchId,
+            @Query("availableOnly") Boolean availableOnly
+    );
+
+    @GET("api/staff/inventory")
+    Call<ApiResponse<List<InventoryStockDto>>> getInventory(
+            @Query("branchId") Long branchId,
+            @Query("lowStockOnly") Boolean lowStockOnly
+    );
+
+    @PUT("api/staff/inventory/{id}/stock")
+    Call<ApiResponse<InventoryStockDto>> updateInventoryStock(
+            @Path("id") Long id,
+            @Body UpdateInventoryStockRequestDto request
+    );
+}

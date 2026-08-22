@@ -20,6 +20,8 @@ public class BookingResponseDto {
     private LocalDateTime appointmentDate;
     private RepairStatus currentStatus;
     private String statusDisplayName;
+    private Long technicianId;
+    private String technicianName;
     private BigDecimal totalCost;
     private LocalDateTime createdAt;
 
@@ -71,6 +73,12 @@ public class BookingResponseDto {
 
     public String getStatusDisplayName() { return statusDisplayName; }
     public void setStatusDisplayName(String statusDisplayName) { this.statusDisplayName = statusDisplayName; }
+
+    public Long getTechnicianId() { return technicianId; }
+    public void setTechnicianId(Long technicianId) { this.technicianId = technicianId; }
+
+    public String getTechnicianName() { return technicianName; }
+    public void setTechnicianName(String technicianName) { this.technicianName = technicianName; }
 
     public BigDecimal getTotalCost() { return totalCost; }
     public void setTotalCost(BigDecimal totalCost) { this.totalCost = totalCost; }

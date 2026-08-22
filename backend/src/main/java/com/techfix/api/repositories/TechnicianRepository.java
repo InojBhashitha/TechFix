@@ -10,4 +10,7 @@ import java.util.List;
 public interface TechnicianRepository extends JpaRepository<Technician, Long> {
     List<Technician> findByBranchId(Long branchId);
     List<Technician> findByBranchIdAndIsAvailableTrue(Long branchId);
+    List<Technician> findByIsAvailableTrue();
+    long countByBranchIdAndIsAvailableTrue(Long branchId);
+    long countByIsAvailableTrue();
 }
