@@ -1,8 +1,10 @@
 package com.techfix.api.controllers;
 
 import com.techfix.api.dto.ApiResponse;
+import com.techfix.api.dto.AssignTechnicianRequestDto;
 import com.techfix.api.dto.BookingResponseDto;
 import com.techfix.api.dto.StaffDashboardStatsDto;
+import com.techfix.api.dto.TechnicianDto;
 import com.techfix.api.dto.UpdateRepairStatusRequestDto;
 import com.techfix.api.services.StaffService;
 import jakarta.validation.Valid;
@@ -11,6 +13,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/staff")
@@ -43,6 +47,32 @@ public class StaffController {
         try {
             BookingResponseDto updatedBooking = staffService.updateRepairStatus(id, request, userDetails.getUsername());
             return ResponseEntity.ok(ApiResponse.success("Repair status updated successfully", updatedBooking));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PutMapping("/bookings/{id}/assign-technician")
+    public ResponseEntity<ApiResponse<BookingResponseDto>> assignTechnician(
+            @PathVariable String id,
+            @Valid @RequestBody AssignTechnicianRequestDto request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            BookingResponseDto updatedBooking = staffService.assignTechnician(id, request, userDetails.getUsername());
+            return ResponseEntity.ok(ApiResponse.success("Technician assigned successfully", updatedBooking));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/technicians")
+    public ResponseEntity<ApiResponse<List<TechnicianDto>>> getTechnicians(
+            @RequestParam(required = false) Long branchId,
+            @RequestParam(required = false) Boolean availableOnly,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            List<TechnicianDto> technicians = staffService.getTechnicians(userDetails.getUsername(), branchId, availableOnly);
+            return ResponseEntity.ok(ApiResponse.success("Technicians retrieved successfully", technicians));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }

@@ -1,11 +1,14 @@
 package com.techfix.api.services;
 
+import com.techfix.api.dto.AssignTechnicianRequestDto;
 import com.techfix.api.dto.BookingResponseDto;
 import com.techfix.api.dto.StaffDashboardStatsDto;
+import com.techfix.api.dto.TechnicianDto;
 import com.techfix.api.dto.UpdateRepairStatusRequestDto;
 import com.techfix.api.entities.BranchInventory;
 import com.techfix.api.entities.RepairRequest;
 import com.techfix.api.entities.RepairStatusHistory;
+import com.techfix.api.entities.Technician;
 import com.techfix.api.entities.User;
 import com.techfix.api.enums.RepairStatus;
 import com.techfix.api.enums.UserRole;
@@ -20,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class StaffService {
@@ -125,16 +129,7 @@ public class StaffService {
         User staff = userRepository.findByEmail(staffEmail)
                 .orElseThrow(() -> new RuntimeException("Staff user not found with email: " + staffEmail));
 
-        RepairRequest booking;
-        if (identifier.matches("\\d+")) {
-            Long id = Long.parseLong(identifier);
-            booking = repairRequestRepository.findById(id)
-                    .orElseGet(() -> repairRequestRepository.findByBookingReference(identifier)
-                            .orElseThrow(() -> new RuntimeException("Repair booking not found with ID or reference: " + identifier)));
-        } else {
-            booking = repairRequestRepository.findByBookingReference(identifier)
-                    .orElseThrow(() -> new RuntimeException("Repair booking not found with reference: " + identifier));
-        }
+        RepairRequest booking = findBookingByIdentifier(identifier);
 
         if (staff.getRole() == UserRole.STAFF) {
             if (staff.getBranchId() != null && !staff.getBranchId().equals(booking.getBranch().getId())) {
@@ -171,6 +166,106 @@ public class StaffService {
         return mapToBookingResponseDto(booking);
     }
 
+    @Transactional
+    public BookingResponseDto assignTechnician(String identifier, AssignTechnicianRequestDto request, String staffEmail) {
+        User staff = userRepository.findByEmail(staffEmail)
+                .orElseThrow(() -> new RuntimeException("Staff user not found with email: " + staffEmail));
+
+        RepairRequest booking = findBookingByIdentifier(identifier);
+
+        if (staff.getRole() == UserRole.STAFF) {
+            if (staff.getBranchId() != null && !staff.getBranchId().equals(booking.getBranch().getId())) {
+                throw new RuntimeException("Access Denied: Staff members can only assign technicians to repairs in their branch.");
+            }
+        }
+
+        Technician technician = technicianRepository.findById(request.getTechnicianId())
+                .orElseThrow(() -> new RuntimeException("Technician not found with ID: " + request.getTechnicianId()));
+
+        if (!technician.getBranch().getId().equals(booking.getBranch().getId())) {
+            throw new RuntimeException("Technician does not belong to branch: " + booking.getBranch().getName());
+        }
+
+        if (Boolean.FALSE.equals(technician.getIsAvailable())) {
+            throw new RuntimeException("Technician " + technician.getFullName() + " is currently marked as unavailable.");
+        }
+
+        // Adjust active repairs count if replacing previous technician
+        if (booking.getTechnician() != null && !booking.getTechnician().getId().equals(technician.getId())) {
+            Technician prevTech = booking.getTechnician();
+            if (prevTech.getActiveRepairsCount() != null && prevTech.getActiveRepairsCount() > 0) {
+                prevTech.setActiveRepairsCount(prevTech.getActiveRepairsCount() - 1);
+                technicianRepository.save(prevTech);
+            }
+        }
+
+        if (booking.getTechnician() == null || !booking.getTechnician().getId().equals(technician.getId())) {
+            technician.setActiveRepairsCount((technician.getActiveRepairsCount() != null ? technician.getActiveRepairsCount() : 0) + 1);
+            technicianRepository.save(technician);
+        }
+
+        booking.setTechnician(technician);
+
+        // Update status to BRANCH_ASSIGNED if it is currently in REQUEST_SUBMITTED
+        if (booking.getCurrentStatus() == RepairStatus.REQUEST_SUBMITTED) {
+            booking.setCurrentStatus(RepairStatus.BRANCH_ASSIGNED);
+        }
+
+        booking.setUpdatedAt(LocalDateTime.now());
+        booking = repairRequestRepository.save(booking);
+
+        String notes = request.getNotes() != null && !request.getNotes().isBlank()
+                ? request.getNotes()
+                : "Assigned technician: " + technician.getFullName();
+
+        RepairStatusHistory history = new RepairStatusHistory(booking, booking.getCurrentStatus(), notes, staff);
+        statusHistoryRepository.save(history);
+
+        return mapToBookingResponseDto(booking);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TechnicianDto> getTechnicians(String staffEmail, Long requestedBranchId, Boolean availableOnly) {
+        User staff = userRepository.findByEmail(staffEmail)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + staffEmail));
+
+        Long branchId = requestedBranchId;
+        if (branchId == null && staff.getRole() == UserRole.STAFF) {
+            branchId = staff.getBranchId();
+        }
+
+        List<Technician> technicians;
+        if (branchId != null) {
+            if (Boolean.TRUE.equals(availableOnly)) {
+                technicians = technicianRepository.findByBranchIdAndIsAvailableTrue(branchId);
+            } else {
+                technicians = technicianRepository.findByBranchId(branchId);
+            }
+        } else {
+            if (Boolean.TRUE.equals(availableOnly)) {
+                technicians = technicianRepository.findByIsAvailableTrue();
+            } else {
+                technicians = technicianRepository.findAll();
+            }
+        }
+
+        return technicians.stream()
+                .map(this::mapToTechnicianDto)
+                .collect(Collectors.toList());
+    }
+
+    private RepairRequest findBookingByIdentifier(String identifier) {
+        if (identifier.matches("\\d+")) {
+            Long id = Long.parseLong(identifier);
+            return repairRequestRepository.findById(id)
+                    .orElseGet(() -> repairRequestRepository.findByBookingReference(identifier)
+                            .orElseThrow(() -> new RuntimeException("Repair booking not found with ID or reference: " + identifier)));
+        } else {
+            return repairRequestRepository.findByBookingReference(identifier)
+                    .orElseThrow(() -> new RuntimeException("Repair booking not found with reference: " + identifier));
+        }
+    }
+
     private void validateStatusTransition(RepairStatus current, RepairStatus target) {
         if (current == target) {
             return;
@@ -184,12 +279,11 @@ public class StaffService {
         }
 
         if (target == RepairStatus.CANCELLED) {
-            return; // Cancellation is allowed from any active repair state
+            return;
         }
 
-        // Exception for QA retry
         if (current == RepairStatus.QUALITY_CHECK && target == RepairStatus.REPAIRING) {
-            return; // QA re-work allowed
+            return;
         }
 
         if (target.getStepNumber() <= current.getStepNumber()) {
@@ -214,8 +308,24 @@ public class StaffService {
         dto.setProblemDescription(booking.getProblemDescription());
         dto.setAppointmentDate(booking.getAppointmentDate());
         dto.setCurrentStatus(booking.getCurrentStatus());
+        if (booking.getTechnician() != null) {
+            dto.setTechnicianId(booking.getTechnician().getId());
+            dto.setTechnicianName(booking.getTechnician().getFullName());
+        }
         dto.setTotalCost(booking.getTotalCost());
         dto.setCreatedAt(booking.getCreatedAt());
         return dto;
+    }
+
+    private TechnicianDto mapToTechnicianDto(Technician tech) {
+        return new TechnicianDto(
+                tech.getId(),
+                tech.getBranch() != null ? tech.getBranch().getId() : null,
+                tech.getBranch() != null ? tech.getBranch().getName() : null,
+                tech.getFullName(),
+                tech.getSpecialization(),
+                tech.getIsAvailable(),
+                tech.getActiveRepairsCount()
+        );
     }
 }
