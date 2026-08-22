@@ -27,9 +27,12 @@ import com.techfix.app.data.remote.ApiService;
 import com.techfix.app.data.remote.dto.ApiResponse;
 import com.techfix.app.data.remote.dto.AssignTechnicianRequestDto;
 import com.techfix.app.data.remote.dto.BookingResponseDto;
+import com.techfix.app.data.remote.dto.InventoryStockDto;
 import com.techfix.app.data.remote.dto.StaffDashboardStatsDto;
 import com.techfix.app.data.remote.dto.TechnicianDto;
+import com.techfix.app.data.remote.dto.UpdateInventoryStockRequestDto;
 import com.techfix.app.data.remote.dto.UpdateRepairStatusRequestDto;
+import com.techfix.app.ui.adapters.StaffInventoryAdapter;
 import com.techfix.app.ui.adapters.StaffRepairQueueAdapter;
 import com.techfix.app.ui.auth.LoginActivity;
 import com.techfix.app.ui.tracking.RepairTrackingActivity;
@@ -134,6 +137,8 @@ public class StaffMainActivity extends AppCompatActivity implements StaffRepairQ
 
     private void setupListeners() {
         btnRefresh.setOnClickListener(v -> refreshAllData());
+
+        btnInventory.setOnClickListener(v -> showInventoryManagerDialog());
 
         swipeRefreshLayout.setOnRefreshListener(this::refreshAllData);
 
@@ -356,7 +361,6 @@ public class StaffMainActivity extends AppCompatActivity implements StaffRepairQ
         btnCancelAssign.setOnClickListener(v -> dialog.dismiss());
         btnSubmitAssign.setEnabled(false);
 
-        // Fetch available technicians
         apiService.getTechnicians(null, true).enqueue(new Callback<ApiResponse<List<TechnicianDto>>>() {
             @Override
             public void onResponse(Call<ApiResponse<List<TechnicianDto>>> call, Response<ApiResponse<List<TechnicianDto>>> response) {
@@ -443,5 +447,151 @@ public class StaffMainActivity extends AppCompatActivity implements StaffRepairQ
         });
 
         dialog.show();
+    }
+
+    private void showInventoryManagerDialog() {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_branch_inventory, null);
+
+        ImageButton btnCloseInventory = dialogView.findViewById(R.id.btnCloseInventory);
+        ChipGroup chipGroupInventoryFilter = dialogView.findViewById(R.id.chipGroupInventoryFilter);
+        SwipeRefreshLayout swipeRefreshInventory = dialogView.findViewById(R.id.swipeRefreshInventory);
+        RecyclerView rvInventoryList = dialogView.findViewById(R.id.rvInventoryList);
+        LinearLayout layoutEmptyInventory = dialogView.findViewById(R.id.layoutEmptyInventory);
+
+        rvInventoryList.setLayoutManager(new LinearLayoutManager(this));
+
+        AlertDialog inventoryDialog = new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_NoActionBar_Fullscreen)
+                .setView(dialogView)
+                .create();
+
+        btnCloseInventory.setOnClickListener(v -> inventoryDialog.dismiss());
+
+        final Boolean[] lowStockOnlyFilter = {null};
+
+        StaffInventoryAdapter inventoryAdapter = new StaffInventoryAdapter(item -> {
+            showUpdateStockDialog(item, () -> loadInventoryData(lowStockOnlyFilter[0], inventoryAdapter, swipeRefreshInventory, rvInventoryList, layoutEmptyInventory));
+        });
+        rvInventoryList.setAdapter(inventoryAdapter);
+
+        swipeRefreshInventory.setOnRefreshListener(() ->
+                loadInventoryData(lowStockOnlyFilter[0], inventoryAdapter, swipeRefreshInventory, rvInventoryList, layoutEmptyInventory));
+
+        chipGroupInventoryFilter.setOnCheckedStateChangeListener((group, checkedIds) -> {
+            if (!checkedIds.isEmpty() && checkedIds.get(0) == R.id.chipInvLowStock) {
+                lowStockOnlyFilter[0] = true;
+            } else {
+                lowStockOnlyFilter[0] = null;
+            }
+            loadInventoryData(lowStockOnlyFilter[0], inventoryAdapter, swipeRefreshInventory, rvInventoryList, layoutEmptyInventory);
+        });
+
+        loadInventoryData(lowStockOnlyFilter[0], inventoryAdapter, swipeRefreshInventory, rvInventoryList, layoutEmptyInventory);
+
+        inventoryDialog.show();
+    }
+
+    private void loadInventoryData(Boolean lowStockOnly, StaffInventoryAdapter adapter, SwipeRefreshLayout refreshLayout, RecyclerView recyclerView, LinearLayout emptyLayout) {
+        refreshLayout.setRefreshing(true);
+        apiService.getInventory(null, lowStockOnly).enqueue(new Callback<ApiResponse<List<InventoryStockDto>>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<List<InventoryStockDto>>> call, Response<ApiResponse<List<InventoryStockDto>>> response) {
+                refreshLayout.setRefreshing(false);
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    List<InventoryStockDto> items = response.body().getData();
+                    if (items != null && !items.isEmpty()) {
+                        emptyLayout.setVisibility(View.GONE);
+                        recyclerView.setVisibility(View.VISIBLE);
+                        adapter.setItems(items);
+                    } else {
+                        recyclerView.setVisibility(View.GONE);
+                        emptyLayout.setVisibility(View.VISIBLE);
+                        adapter.setItems(null);
+                    }
+                } else {
+                    Toast.makeText(StaffMainActivity.this, "Failed to load inventory", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<List<InventoryStockDto>>> call, Throwable t) {
+                refreshLayout.setRefreshing(false);
+                Toast.makeText(StaffMainActivity.this, "Network error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void showUpdateStockDialog(InventoryStockDto item, Runnable onUpdated) {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_update_stock, null);
+
+        TextView tvDialogPartInfo = dialogView.findViewById(R.id.tvDialogPartInfo);
+        EditText etQuantity = dialogView.findViewById(R.id.etQuantity);
+        EditText etMinAlert = dialogView.findViewById(R.id.etMinAlert);
+        MaterialButton btnCancelStock = dialogView.findViewById(R.id.btnCancelStock);
+        MaterialButton btnSaveStock = dialogView.findViewById(R.id.btnSaveStock);
+
+        tvDialogPartInfo.setText((item.getPartName() != null ? item.getPartName() : "") + " • " + (item.getBranchName() != null ? item.getBranchName() : ""));
+        etQuantity.setText(String.valueOf(item.getQuantity() != null ? item.getQuantity() : 0));
+        etMinAlert.setText(String.valueOf(item.getMinimumStockAlert() != null ? item.getMinimumStockAlert() : 0));
+
+        AlertDialog stockDialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(true)
+                .create();
+
+        btnCancelStock.setOnClickListener(v -> stockDialog.dismiss());
+
+        btnSaveStock.setOnClickListener(v -> {
+            String qtyStr = etQuantity.getText().toString().trim();
+            String minAlertStr = etMinAlert.getText().toString().trim();
+
+            if (qtyStr.isEmpty() || minAlertStr.isEmpty()) {
+                Toast.makeText(this, "Quantity and Min Alert level are required", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            int qty, minAlert;
+            try {
+                qty = Integer.parseInt(qtyStr);
+                minAlert = Integer.parseInt(minAlertStr);
+            } catch (NumberFormatException e) {
+                Toast.makeText(this, "Invalid number format", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            btnSaveStock.setEnabled(false);
+            btnSaveStock.setText("Saving...");
+
+            UpdateInventoryStockRequestDto updateRequest = new UpdateInventoryStockRequestDto(qty, minAlert);
+
+            apiService.updateInventoryStock(item.getId(), updateRequest).enqueue(new Callback<ApiResponse<InventoryStockDto>>() {
+                @Override
+                public void onResponse(Call<ApiResponse<InventoryStockDto>> call, Response<ApiResponse<InventoryStockDto>> response) {
+                    btnSaveStock.setEnabled(true);
+                    btnSaveStock.setText("Save Stock");
+
+                    if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                        Toast.makeText(StaffMainActivity.this, "Stock updated successfully!", Toast.LENGTH_SHORT).show();
+                        stockDialog.dismiss();
+                        if (onUpdated != null) onUpdated.run();
+                        refreshAllData();
+                    } else {
+                        String errMsg = "Failed to update stock";
+                        if (response.body() != null && response.body().getMessage() != null) {
+                            errMsg = response.body().getMessage();
+                        }
+                        Toast.makeText(StaffMainActivity.this, errMsg, Toast.LENGTH_LONG).show();
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<ApiResponse<InventoryStockDto>> call, Throwable t) {
+                    btnSaveStock.setEnabled(true);
+                    btnSaveStock.setText("Save Stock");
+                    Toast.makeText(StaffMainActivity.this, "Network error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
+
+        stockDialog.show();
     }
 }
