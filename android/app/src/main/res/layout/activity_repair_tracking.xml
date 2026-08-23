@@ -178,6 +178,23 @@
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"
                 tools:listitem="@layout/item_tracking_step" />
+
+            <!-- Pay Here Action Button for Customer -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPayHere"
+                style="@style/Widget.Material3.Button"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="16dp"
+                android:backgroundTint="@color/status_completed"
+                android:text="Pay Here / Complete Payment"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                app:cornerRadius="12dp"
+                app:icon="@drawable/ic_payment" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>

@@ -104,6 +104,19 @@ public class BranchesMapActivity extends AppCompatActivity implements OnMapReady
         tagParts = findViewById(R.id.tagParts);
         btnCallBranch = findViewById(R.id.btnCallBranch);
         btnBookHere = findViewById(R.id.btnBookHere);
+        MaterialButton btnOpenMaps = findViewById(R.id.btnOpenMaps);
+
+        btnOpenMaps.setOnClickListener(v -> {
+            if (mSelectedBranch != null) {
+                Uri gmmIntentUri = Uri.parse("geo:" + mSelectedBranch.getLatitude() + "," + mSelectedBranch.getLongitude() + "?q=" + Uri.encode(mSelectedBranch.getName()));
+                Intent mapIntent = new Intent(Intent.ACTION_VIEW, gmmIntentUri);
+                try {
+                    startActivity(mapIntent);
+                } catch (Exception e) {
+                    Toast.makeText(this, "Could not open Maps app", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
 
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);

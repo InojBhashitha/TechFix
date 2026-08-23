@@ -104,5 +104,21 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
+        <!-- Pay Button Action for Customer when status is Ready for Collection or Completed -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPayNow"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
+            android:backgroundTint="@color/status_completed"
+            android:text="Pay Here"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            app:cornerRadius="10dp"
+            app:icon="@drawable/ic_payment" />
+
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

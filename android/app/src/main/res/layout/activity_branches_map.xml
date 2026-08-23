@@ -187,10 +187,21 @@
                         style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="6dp"
+                        android:layout_marginEnd="4dp"
                         android:layout_weight="1"
                         android:text="Call"
                         app:icon="@android:drawable/ic_menu_call"
+                        app:cornerRadius="10dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnOpenMaps"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="4dp"
+                        android:layout_weight="1"
+                        android:text="Directions"
+                        app:icon="@drawable/ic_map_pin"
                         app:cornerRadius="10dp" />
 
                     <com.google.android.material.button.MaterialButton
@@ -198,9 +209,9 @@
                         style="@style/Widget.Material3.Button"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
+                        android:layout_marginStart="4dp"
                         android:layout_weight="1.2"
-                        android:text="Book Appointment"
+                        android:text="Book Here"
                         app:cornerRadius="10dp" />
                 </LinearLayout>
 

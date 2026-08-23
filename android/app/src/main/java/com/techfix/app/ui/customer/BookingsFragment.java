@@ -23,6 +23,7 @@ import com.techfix.app.data.remote.dto.ApiResponse;
 import com.techfix.app.data.remote.dto.BookingResponseDto;
 import com.techfix.app.ui.adapters.BookingAdapter;
 import com.techfix.app.ui.booking.BookRepairActivity;
+import com.techfix.app.ui.payment.PaymentActivity;
 import com.techfix.app.ui.tracking.RepairTrackingActivity;
 
 import java.util.List;
@@ -69,10 +70,25 @@ public class BookingsFragment extends Fragment {
     }
 
     private void setupRecyclerView() {
-        bookingAdapter = new BookingAdapter(booking -> {
-            Intent intent = new Intent(requireContext(), RepairTrackingActivity.class);
-            intent.putExtra("bookingRef", booking.getBookingReference());
-            startActivity(intent);
+        bookingAdapter = new BookingAdapter(new BookingAdapter.OnBookingClickListener() {
+            @Override
+            public void onBookingClick(BookingResponseDto booking) {
+                Intent intent = new Intent(requireContext(), RepairTrackingActivity.class);
+                intent.putExtra("bookingRef", booking.getBookingReference());
+                startActivity(intent);
+            }
+
+            @Override
+            public void onPayClick(BookingResponseDto booking) {
+                Intent intent = new Intent(requireContext(), PaymentActivity.class);
+                intent.putExtra("bookingRef", booking.getBookingReference());
+                intent.putExtra("serviceName", booking.getServiceName());
+                intent.putExtra("deviceInfo", booking.getDeviceBrand() + " " + booking.getDeviceModel());
+                intent.putExtra("branchName", booking.getBranchName());
+                double cost = booking.getTotalCost() != null ? booking.getTotalCost().doubleValue() : 0.0;
+                intent.putExtra("totalCost", cost);
+                startActivity(intent);
+            }
         });
         rvBookings.setLayoutManager(new LinearLayoutManager(requireContext()));
         rvBookings.setAdapter(bookingAdapter);

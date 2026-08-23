@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.button.MaterialButton;
 import com.techfix.app.R;
 import com.techfix.app.data.remote.dto.BookingResponseDto;
 
@@ -23,6 +24,7 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.BookingV
 
     public interface OnBookingClickListener {
         void onBookingClick(BookingResponseDto booking);
+        void onPayClick(BookingResponseDto booking);
     }
 
     public BookingAdapter(OnBookingClickListener listener) {
@@ -49,8 +51,10 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.BookingV
         holder.tvServiceName.setText(booking.getServiceName());
         holder.tvDeviceInfo.setText(booking.getDeviceBrand() + " " + booking.getDeviceModel() + " • " + booking.getBranchName());
 
+        String formattedCost = "LKR 0.00";
         if (booking.getTotalCost() != null) {
-            holder.tvTotalCost.setText("LKR " + String.format(Locale.getDefault(), "%,.2f", booking.getTotalCost()));
+            formattedCost = "LKR " + String.format(Locale.getDefault(), "%,.2f", booking.getTotalCost());
+            holder.tvTotalCost.setText(formattedCost);
         } else {
             holder.tvTotalCost.setText("");
         }
@@ -66,17 +70,29 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.BookingV
         holder.tvStatusBadge.setText(statusText);
 
         int colorRes = R.color.status_submitted;
-        if ("COMPLETED".equals(booking.getCurrentStatus())) {
+        String currentStatus = booking.getCurrentStatus();
+
+        if ("COMPLETED".equals(currentStatus)) {
             colorRes = R.color.status_completed;
-        } else if ("READY_FOR_COLLECTION".equals(booking.getCurrentStatus())) {
+        } else if ("READY_FOR_COLLECTION".equals(currentStatus)) {
             colorRes = R.color.status_ready;
-        } else if ("REPAIRING".equals(booking.getCurrentStatus()) || "DIAGNOSIS".equals(booking.getCurrentStatus())) {
+        } else if ("REPAIRING".equals(currentStatus) || "DIAGNOSIS".equals(currentStatus) || "QUALITY_CHECK".equals(currentStatus)) {
             colorRes = R.color.status_in_progress;
-        } else if ("CANCELLED".equals(booking.getCurrentStatus())) {
+        } else if ("CANCELLED".equals(currentStatus)) {
             colorRes = R.color.status_cancelled;
         }
 
         holder.tvStatusBadge.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), colorRes));
+
+        // Show "Pay Here" button when repair is Ready for Collection or Completed
+        if ("READY_FOR_COLLECTION".equalsIgnoreCase(currentStatus) || "COMPLETED".equalsIgnoreCase(currentStatus)) {
+            holder.btnPayNow.setVisibility(View.VISIBLE);
+            holder.btnPayNow.setText("Pay Here (" + formattedCost + ")");
+            holder.btnPayNow.setOnClickListener(v -> listener.onPayClick(booking));
+        } else {
+            holder.btnPayNow.setVisibility(View.GONE);
+        }
+
         holder.itemView.setOnClickListener(v -> listener.onBookingClick(booking));
     }
 
@@ -87,6 +103,7 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.BookingV
 
     static class BookingViewHolder extends RecyclerView.ViewHolder {
         TextView tvBookingRef, tvStatusBadge, tvServiceName, tvDeviceInfo, tvAppointmentDate, tvTotalCost;
+        MaterialButton btnPayNow;
 
         BookingViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -96,6 +113,7 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.BookingV
             tvDeviceInfo = itemView.findViewById(R.id.tvDeviceInfo);
             tvAppointmentDate = itemView.findViewById(R.id.tvAppointmentDate);
             tvTotalCost = itemView.findViewById(R.id.tvTotalCost);
+            btnPayNow = itemView.findViewById(R.id.btnPayNow);
         }
     }
 }

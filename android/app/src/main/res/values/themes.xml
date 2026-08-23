@@ -17,6 +17,14 @@
         <item name="colorSurface">@color/surface</item>
         <item name="colorSurfaceVariant">@color/surface_variant</item>
 
+        <!-- Text Colors -->
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textColorHint">@color/text_muted</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="editTextColor">@color/text_primary</item>
+        <item name="android:editTextColor">@color/text_primary</item>
+
         <!-- Status & System Bars -->
         <item name="android:statusBarColor">@color/surface</item>
         <item name="android:windowLightStatusBar">true</item>

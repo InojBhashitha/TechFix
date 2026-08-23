@@ -1,5 +1,6 @@
 package com.techfix.app.ui.tracking;
 
+import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.view.View;
@@ -7,6 +8,8 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.Locale;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -149,6 +152,25 @@ public class RepairTrackingActivity extends AppCompatActivity {
         tvProblemDesc.setText("Problem: " + (dto.getProblemDescription() != null ? dto.getProblemDescription() : "N/A"));
         
         bindStatusBadge(dto.getCurrentStatus(), dto.getCurrentStatusDisplayName());
+
+        MaterialButton btnPayHere = findViewById(R.id.btnPayHere);
+        String status = dto.getCurrentStatus();
+        if ("READY_FOR_COLLECTION".equalsIgnoreCase(status) || "COMPLETED".equalsIgnoreCase(status)) {
+            btnPayHere.setVisibility(View.VISIBLE);
+            double cost = dto.getTotalCost() != null ? dto.getTotalCost().doubleValue() : 0.0;
+            btnPayHere.setText(String.format(Locale.getDefault(), "Pay Here (LKR %.2f)", cost));
+            btnPayHere.setOnClickListener(v -> {
+                Intent intent = new Intent(RepairTrackingActivity.this, com.techfix.app.ui.payment.PaymentActivity.class);
+                intent.putExtra("bookingRef", dto.getBookingReference());
+                intent.putExtra("serviceName", dto.getServiceName());
+                intent.putExtra("deviceInfo", dto.getDeviceBrand() + " " + dto.getDeviceModel());
+                intent.putExtra("branchName", dto.getBranchName());
+                intent.putExtra("totalCost", cost);
+                startActivity(intent);
+            });
+        } else {
+            btnPayHere.setVisibility(View.GONE);
+        }
 
         trackingAdapter.setTrackingData(dto);
     }
