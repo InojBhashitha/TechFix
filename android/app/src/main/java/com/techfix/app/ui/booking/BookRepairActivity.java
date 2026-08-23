@@ -744,12 +744,13 @@ public class BookRepairActivity extends AppCompatActivity {
 
     private void launchCamera() {
         try {
-            File photoFile = new File(getCacheDir(), "temp_repair_" + System.currentTimeMillis() + ".jpg");
+            File storageDir = getExternalCacheDir() != null ? getExternalCacheDir() : getCacheDir();
+            File photoFile = File.createTempFile("temp_repair_", ".jpg", storageDir);
             tempCameraUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", photoFile);
             takePictureLauncher.launch(tempCameraUri);
         } catch (Exception e) {
             e.printStackTrace();
-            Toast.makeText(this, "Failed to launch device camera.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Failed to launch camera: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
