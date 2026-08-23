@@ -607,9 +607,9 @@ public class BookRepairActivity extends AppCompatActivity {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 getLocationAndQueryRecommendation();
             } else {
-                // Fallback to Colombo
-                customerLatitude = 6.9271;
-                customerLongitude = 79.8612;
+                // Fallback coordinates (Dehiwala / Colombo Suburbs)
+                customerLatitude = 6.8480;
+                customerLongitude = 79.9265;
                 queryRecommendation(customerLatitude, customerLongitude);
             }
         }
@@ -631,18 +631,18 @@ public class BookRepairActivity extends AppCompatActivity {
                     customerLatitude = location.getLatitude();
                     customerLongitude = location.getLongitude();
                 } else {
-                    // Fallback to Colombo
-                    customerLatitude = 6.9271;
-                    customerLongitude = 79.8612;
+                    // Fallback coordinates (Dehiwala / Colombo Suburbs)
+                    customerLatitude = 6.8480;
+                    customerLongitude = 79.9265;
                 }
                 queryRecommendation(customerLatitude, customerLongitude);
             });
         } catch (SecurityException e) {
             showLoading(false);
             e.printStackTrace();
-            // Fallback to Colombo
-            customerLatitude = 6.9271;
-            customerLongitude = 79.8612;
+            // Fallback coordinates (Dehiwala / Colombo Suburbs)
+            customerLatitude = 6.8480;
+            customerLongitude = 79.9265;
             queryRecommendation(customerLatitude, customerLongitude);
         }
     }

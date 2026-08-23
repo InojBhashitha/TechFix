@@ -190,10 +190,10 @@ public class BranchesMapActivity extends AppCompatActivity implements OnMapReady
                 updateLocationUI();
                 getDeviceLocation();
             } else {
-                // If permission is denied, use Colombo as fallback
-                Toast.makeText(this, "Location permission denied. Showing default Colombo view.", Toast.LENGTH_LONG).show();
+                // If permission is denied, use Colombo Suburbs as fallback
+                Toast.makeText(this, "Location permission denied. Showing default Sri Lanka view.", Toast.LENGTH_LONG).show();
                 updateLocationUI();
-                loadRecommendationWithFallback(6.9271, 79.8612); // Colombo
+                loadRecommendationWithFallback(6.8480, 79.9265);
             }
         }
     }
@@ -226,9 +226,9 @@ public class BranchesMapActivity extends AppCompatActivity implements OnMapReady
                     if (location != null) {
                         loadRecommendation(location.getLatitude(), location.getLongitude());
                     } else {
-                        // Fallback if location returns null (common on emulators)
-                        tvGuideText.setText("Location unavailable, using default Colombo coordinates");
-                        loadRecommendationWithFallback(6.9271, 79.8612);
+                        // Fallback if location returns null (common on emulators/unprimed GPS)
+                        tvGuideText.setText("Location unavailable, using default Sri Lanka coordinates");
+                        loadRecommendationWithFallback(6.8480, 79.9265);
                     }
                 });
             }
