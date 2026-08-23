@@ -152,7 +152,7 @@ public class BookingService {
 
         return new RepairTrackingDto(
                 booking.getBookingReference(),
-                booking.getRepairService() != null ? booking.getRepairService().getName() : "Repair Service",
+                booking.getService() != null ? booking.getService().getName() : "Repair Service",
                 booking.getBranch() != null ? booking.getBranch().getName() : "TechFix Service Center",
                 booking.getDeviceBrand(),
                 booking.getDeviceModel(),
