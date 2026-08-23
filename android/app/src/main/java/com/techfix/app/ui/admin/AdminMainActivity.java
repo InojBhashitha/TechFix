@@ -14,6 +14,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -425,7 +426,7 @@ public class AdminMainActivity extends AppCompatActivity implements StaffRepairQ
 
         rvInventoryList.setLayoutManager(new LinearLayoutManager(this));
 
-        AlertDialog inventoryDialog = new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_NoActionBar_Fullscreen)
+        AlertDialog inventoryDialog = new MaterialAlertDialogBuilder(this)
                 .setView(dialogView)
                 .create();
 

@@ -61,6 +61,10 @@ public class RepairTrackingActivity extends AppCompatActivity {
 
         bookingRef = getIntent().getStringExtra("bookingRef");
         if (bookingRef == null || bookingRef.trim().isEmpty()) {
+            bookingRef = getIntent().getStringExtra("BOOKING_REFERENCE");
+        }
+
+        if (bookingRef == null || bookingRef.trim().isEmpty()) {
             showError("No booking reference was provided.");
         } else {
             loadTrackingData();
