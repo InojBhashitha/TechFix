@@ -26,3 +26,11 @@ captures/
 
 # Uploads directory
 uploads/
+
+# IDE & Tool Artifacts
+.artifacts/
+*.artifacts/
+*_log.txt
+*_err.txt
+gradle_debug.txt
+

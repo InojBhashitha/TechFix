@@ -17,6 +17,7 @@ import java.util.Random;
 import java.util.stream.Collectors;
 
 @Service
+@SuppressWarnings("null")
 public class BookingService {
 
     private final RepairRequestRepository bookingRepository;

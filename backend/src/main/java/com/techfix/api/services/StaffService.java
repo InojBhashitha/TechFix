@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@SuppressWarnings("null")
 public class StaffService {
 
     private final RepairRequestRepository repairRequestRepository;
@@ -175,6 +176,28 @@ public class StaffService {
 
         validateStatusTransition(currentStatus, newStatus);
 
+        // Automatic Spare Part Inventory Deduction & Cost Addition
+        if (request.getSparePartId() != null) {
+            Long branchId = booking.getBranch().getId();
+            BranchInventory inventory = branchInventoryRepository.findByBranchIdAndSparePartId(branchId, request.getSparePartId())
+                    .orElseThrow(() -> new RuntimeException("Spare part inventory record not found in branch for part ID: " + request.getSparePartId()));
+
+            int qtyToDeduct = (request.getSparePartQuantity() != null && request.getSparePartQuantity() > 0) ? request.getSparePartQuantity() : 1;
+
+            if (inventory.getQuantity() == null || inventory.getQuantity() < qtyToDeduct) {
+                throw new IllegalStateException("Insufficient stock for spare part: " + (inventory.getSparePart() != null ? inventory.getSparePart().getName() : "Part ID " + request.getSparePartId()) + ". Available: " + (inventory.getQuantity() != null ? inventory.getQuantity() : 0));
+            }
+
+            inventory.setQuantity(inventory.getQuantity() - qtyToDeduct);
+            branchInventoryRepository.save(inventory);
+
+            if (inventory.getSparePart() != null && inventory.getSparePart().getUnitCost() != null) {
+                BigDecimal partCost = inventory.getSparePart().getUnitCost().multiply(BigDecimal.valueOf(qtyToDeduct));
+                BigDecimal currentCost = booking.getTotalCost() != null ? booking.getTotalCost() : BigDecimal.ZERO;
+                booking.setTotalCost(currentCost.add(partCost));
+            }
+        }
+
         if (request.getAdditionalCost() != null && request.getAdditionalCost().compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal currentCost = booking.getTotalCost() != null ? booking.getTotalCost() : BigDecimal.ZERO;
             booking.setTotalCost(currentCost.add(request.getAdditionalCost()));
@@ -255,6 +278,45 @@ public class StaffService {
         statusHistoryRepository.save(history);
 
         return mapToBookingResponseDto(booking);
+    }
+
+    @Transactional
+    public BookingResponseDto autoAssignTechnician(String identifier, String staffEmail) {
+        User staff = userRepository.findByEmail(staffEmail)
+                .orElseThrow(() -> new RuntimeException("Staff user not found with email: " + staffEmail));
+
+        RepairRequest booking = findBookingByIdentifier(identifier);
+
+        if (staff.getRole() == UserRole.STAFF) {
+            if (staff.getBranchId() != null && !staff.getBranchId().equals(booking.getBranch().getId())) {
+                throw new RuntimeException("Access Denied: Staff members can only assign technicians to repairs in their branch.");
+            }
+        }
+
+        List<Technician> availableTechs = technicianRepository.findByBranchIdAndIsAvailableTrue(booking.getBranch().getId());
+
+        if (availableTechs == null || availableTechs.isEmpty()) {
+            throw new RuntimeException("No available technicians found in branch: " + booking.getBranch().getName());
+        }
+
+        // Smart Selection: 1. Try matching category/specialization, 2. Select technician with lowest activeRepairsCount
+        String categoryName = (booking.getService() != null && booking.getService().getCategory() != null)
+                ? booking.getService().getCategory().getName().toLowerCase()
+                : "";
+
+        Technician bestTech = availableTechs.stream()
+                .filter(t -> t.getSpecialization() != null && !categoryName.isEmpty() && t.getSpecialization().toLowerCase().contains(categoryName))
+                .min((t1, t2) -> Integer.compare(
+                        t1.getActiveRepairsCount() != null ? t1.getActiveRepairsCount() : 0,
+                        t2.getActiveRepairsCount() != null ? t2.getActiveRepairsCount() : 0))
+                .orElseGet(() -> availableTechs.stream()
+                        .min((t1, t2) -> Integer.compare(
+                                t1.getActiveRepairsCount() != null ? t1.getActiveRepairsCount() : 0,
+                                t2.getActiveRepairsCount() != null ? t2.getActiveRepairsCount() : 0))
+                        .orElse(availableTechs.get(0)));
+
+        AssignTechnicianRequestDto assignRequest = new AssignTechnicianRequestDto(bestTech.getId(), "Smart Auto-Assigned technician: " + bestTech.getFullName() + " based on workload and specialization");
+        return assignTechnician(identifier, assignRequest, staffEmail);
     }
 
     @Transactional(readOnly = true)

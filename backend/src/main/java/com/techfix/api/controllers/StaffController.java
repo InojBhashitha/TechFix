@@ -81,6 +81,18 @@ public class StaffController {
         }
     }
 
+    @PostMapping("/bookings/{id}/auto-assign-technician")
+    public ResponseEntity<ApiResponse<BookingResponseDto>> autoAssignTechnician(
+            @PathVariable String id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            BookingResponseDto updatedBooking = staffService.autoAssignTechnician(id, userDetails.getUsername());
+            return ResponseEntity.ok(ApiResponse.success("Smart auto-assigned technician successfully", updatedBooking));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
     @GetMapping("/technicians")
     public ResponseEntity<ApiResponse<List<TechnicianDto>>> getTechnicians(
             @RequestParam(required = false) Long branchId,

@@ -13,12 +13,24 @@ public class UpdateRepairStatusRequestDto {
 
     private BigDecimal additionalCost;
 
+    private Long sparePartId;
+
+    private Integer sparePartQuantity;
+
     public UpdateRepairStatusRequestDto() {}
 
     public UpdateRepairStatusRequestDto(RepairStatus status, String notes, BigDecimal additionalCost) {
         this.status = status;
         this.notes = notes;
         this.additionalCost = additionalCost;
+    }
+
+    public UpdateRepairStatusRequestDto(RepairStatus status, String notes, BigDecimal additionalCost, Long sparePartId, Integer sparePartQuantity) {
+        this.status = status;
+        this.notes = notes;
+        this.additionalCost = additionalCost;
+        this.sparePartId = sparePartId;
+        this.sparePartQuantity = sparePartQuantity;
     }
 
     public RepairStatus getStatus() { return status; }
@@ -29,4 +41,10 @@ public class UpdateRepairStatusRequestDto {
 
     public BigDecimal getAdditionalCost() { return additionalCost; }
     public void setAdditionalCost(BigDecimal additionalCost) { this.additionalCost = additionalCost; }
+
+    public Long getSparePartId() { return sparePartId; }
+    public void setSparePartId(Long sparePartId) { this.sparePartId = sparePartId; }
+
+    public Integer getSparePartQuantity() { return sparePartQuantity; }
+    public void setSparePartQuantity(Integer sparePartQuantity) { this.sparePartQuantity = sparePartQuantity; }
 }
