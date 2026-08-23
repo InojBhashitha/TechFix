@@ -54,7 +54,8 @@ public class AdminMainActivity extends AppCompatActivity implements StaffRepairQ
 
     private TextView tvWelcome, tvRole;
     private TextView tvCountPending, tvCountInProgress, tvCountCompleted, tvCountTotal;
-    private ImageButton btnRefresh, btnInventory, btnLogout;
+    private ImageButton btnRefresh, btnLogout;
+    private MaterialButton btnInventory;
     private MaterialButton btnBranchFilter;
 
     private SwipeRefreshLayout swipeRefreshLayout;
