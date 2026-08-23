@@ -14,11 +14,13 @@ public class RepairTrackingDto {
     private RepairStatus currentStatus;
     private String currentStatusDisplayName;
     private BigDecimal totalCost;
+    private Boolean isPaid;
+    private String paymentStatus;
     private List<RepairStatusHistoryDto> history;
 
     public RepairTrackingDto() {}
 
-    public RepairTrackingDto(String bookingReference, String serviceName, String branchName, String deviceBrand, String deviceModel, String problemDescription, RepairStatus currentStatus, String currentStatusDisplayName, BigDecimal totalCost, List<RepairStatusHistoryDto> history) {
+    public RepairTrackingDto(String bookingReference, String serviceName, String branchName, String deviceBrand, String deviceModel, String problemDescription, RepairStatus currentStatus, String currentStatusDisplayName, BigDecimal totalCost, Boolean isPaid, String paymentStatus, List<RepairStatusHistoryDto> history) {
         this.bookingReference = bookingReference;
         this.serviceName = serviceName;
         this.branchName = branchName;
@@ -28,6 +30,8 @@ public class RepairTrackingDto {
         this.currentStatus = currentStatus;
         this.currentStatusDisplayName = currentStatusDisplayName;
         this.totalCost = totalCost;
+        this.isPaid = isPaid;
+        this.paymentStatus = paymentStatus;
         this.history = history;
     }
 
@@ -57,6 +61,12 @@ public class RepairTrackingDto {
 
     public BigDecimal getTotalCost() { return totalCost; }
     public void setTotalCost(BigDecimal totalCost) { this.totalCost = totalCost; }
+
+    public Boolean getIsPaid() { return isPaid; }
+    public void setIsPaid(Boolean isPaid) { this.isPaid = isPaid; }
+
+    public String getPaymentStatus() { return paymentStatus; }
+    public void setPaymentStatus(String paymentStatus) { this.paymentStatus = paymentStatus; }
 
     public List<RepairStatusHistoryDto> getHistory() { return history; }
     public void setHistory(List<RepairStatusHistoryDto> history) { this.history = history; }

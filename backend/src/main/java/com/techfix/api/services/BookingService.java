@@ -116,6 +116,10 @@ public class BookingService {
         dto.setAppointmentDate(booking.getAppointmentDate());
         dto.setCurrentStatus(booking.getCurrentStatus());
         dto.setTotalCost(booking.getTotalCost());
+        boolean isPaid = booking.getPayment() != null && booking.getPayment().getPaymentStatus() == com.techfix.api.enums.PaymentStatus.PAID;
+        String payStatus = booking.getPayment() != null && booking.getPayment().getPaymentStatus() != null ? booking.getPayment().getPaymentStatus().name() : "UNPAID";
+        dto.setIsPaid(isPaid);
+        dto.setPaymentStatus(payStatus);
         dto.setCreatedAt(booking.getCreatedAt());
         return dto;
     }
@@ -150,6 +154,9 @@ public class BookingService {
                 ))
                 .collect(Collectors.toList());
 
+        boolean isPaid = booking.getPayment() != null && booking.getPayment().getPaymentStatus() == com.techfix.api.enums.PaymentStatus.PAID;
+        String payStatus = booking.getPayment() != null && booking.getPayment().getPaymentStatus() != null ? booking.getPayment().getPaymentStatus().name() : "UNPAID";
+
         return new RepairTrackingDto(
                 booking.getBookingReference(),
                 booking.getService() != null ? booking.getService().getName() : "Repair Service",
@@ -160,6 +167,8 @@ public class BookingService {
                 booking.getCurrentStatus(),
                 booking.getCurrentStatus().getDisplayName(),
                 booking.getTotalCost(),
+                isPaid,
+                payStatus,
                 historyDtoList
         );
     }

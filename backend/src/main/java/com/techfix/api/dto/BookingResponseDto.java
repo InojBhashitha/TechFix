@@ -23,6 +23,8 @@ public class BookingResponseDto {
     private Long technicianId;
     private String technicianName;
     private BigDecimal totalCost;
+    private Boolean isPaid;
+    private String paymentStatus;
     private LocalDateTime createdAt;
 
     public BookingResponseDto() {}
@@ -82,6 +84,12 @@ public class BookingResponseDto {
 
     public BigDecimal getTotalCost() { return totalCost; }
     public void setTotalCost(BigDecimal totalCost) { this.totalCost = totalCost; }
+
+    public Boolean getIsPaid() { return isPaid; }
+    public void setIsPaid(Boolean isPaid) { this.isPaid = isPaid; }
+
+    public String getPaymentStatus() { return paymentStatus; }
+    public void setPaymentStatus(String paymentStatus) { this.paymentStatus = paymentStatus; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

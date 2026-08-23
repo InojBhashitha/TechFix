@@ -84,8 +84,9 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.BookingV
 
         holder.tvStatusBadge.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), colorRes));
 
-        // Show "Pay Here" button when repair is Ready for Collection or Completed
-        if ("READY_FOR_COLLECTION".equalsIgnoreCase(currentStatus) || "COMPLETED".equalsIgnoreCase(currentStatus)) {
+        // Show "Pay Here" button ONLY when repair is Ready for Collection or Completed AND NOT YET PAID
+        boolean isPaid = booking.getIsPaid() != null && booking.getIsPaid();
+        if (!isPaid && ("READY_FOR_COLLECTION".equalsIgnoreCase(currentStatus) || "COMPLETED".equalsIgnoreCase(currentStatus))) {
             holder.btnPayNow.setVisibility(View.VISIBLE);
             holder.btnPayNow.setText("Pay Here (" + formattedCost + ")");
             holder.btnPayNow.setOnClickListener(v -> listener.onPayClick(booking));

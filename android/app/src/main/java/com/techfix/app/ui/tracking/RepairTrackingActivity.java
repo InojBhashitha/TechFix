@@ -155,7 +155,8 @@ public class RepairTrackingActivity extends AppCompatActivity {
 
         MaterialButton btnPayHere = findViewById(R.id.btnPayHere);
         String status = dto.getCurrentStatus();
-        if ("READY_FOR_COLLECTION".equalsIgnoreCase(status) || "COMPLETED".equalsIgnoreCase(status)) {
+        boolean isPaid = dto.getIsPaid() != null && dto.getIsPaid();
+        if (!isPaid && ("READY_FOR_COLLECTION".equalsIgnoreCase(status) || "COMPLETED".equalsIgnoreCase(status))) {
             btnPayHere.setVisibility(View.VISIBLE);
             double cost = dto.getTotalCost() != null ? dto.getTotalCost().doubleValue() : 0.0;
             btnPayHere.setText(String.format(Locale.getDefault(), "Pay Here (LKR %.2f)", cost));

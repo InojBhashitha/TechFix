@@ -20,6 +20,8 @@ public class BookingResponseDto {
     private Long technicianId;
     private String technicianName;
     private BigDecimal totalCost;
+    private Boolean isPaid;
+    private String paymentStatus;
     private String createdAt;
 
     public Long getId() { return id; }
@@ -39,5 +41,7 @@ public class BookingResponseDto {
     public Long getTechnicianId() { return technicianId; }
     public String getTechnicianName() { return technicianName; }
     public BigDecimal getTotalCost() { return totalCost; }
+    public Boolean getIsPaid() { return isPaid; }
+    public String getPaymentStatus() { return paymentStatus; }
     public String getCreatedAt() { return createdAt; }
 }

@@ -13,6 +13,8 @@ public class RepairTrackingDto {
     private String currentStatus;
     private String currentStatusDisplayName;
     private BigDecimal totalCost;
+    private Boolean isPaid;
+    private String paymentStatus;
     private List<RepairStatusHistoryDto> history;
 
     public RepairTrackingDto() {}
@@ -26,5 +28,7 @@ public class RepairTrackingDto {
     public String getCurrentStatus() { return currentStatus; }
     public String getCurrentStatusDisplayName() { return currentStatusDisplayName; }
     public BigDecimal getTotalCost() { return totalCost; }
+    public Boolean getIsPaid() { return isPaid; }
+    public String getPaymentStatus() { return paymentStatus; }
     public List<RepairStatusHistoryDto> getHistory() { return history; }
 }
