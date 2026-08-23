@@ -62,13 +62,16 @@ public class SessionManager {
         return prefs.getString(KEY_ROLE, "CUSTOMER");
     }
 
+    public boolean isAdmin() {
+        return "ADMIN".equalsIgnoreCase(getRole());
+    }
+
     public boolean isStaff() {
-        String role = getRole();
-        return "STAFF".equals(role) || "ADMIN".equals(role);
+        return "STAFF".equalsIgnoreCase(getRole());
     }
 
     public boolean isCustomer() {
-        return "CUSTOMER".equals(getRole());
+        return "CUSTOMER".equalsIgnoreCase(getRole());
     }
 
     /**

@@ -88,6 +88,11 @@
             android:name=".ui.staff.StaffMainActivity"
             android:exported="false" />
 
+        <!-- Admin Flow -->
+        <activity
+            android:name=".ui.admin.AdminMainActivity"
+            android:exported="false" />
+
     </application>
 
 </manifest>

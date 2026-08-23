@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.techfix.app.R;
 import com.techfix.app.data.remote.ApiClient;
+import com.techfix.app.ui.admin.AdminMainActivity;
 import com.techfix.app.ui.customer.CustomerMainActivity;
 import com.techfix.app.ui.staff.StaffMainActivity;
 import com.techfix.app.utils.SessionManager;
@@ -29,7 +30,9 @@ public class SplashActivity extends AppCompatActivity {
                 ApiClient.setAuthToken(session.getToken());
 
                 // Route by role
-                if (session.isStaff()) {
+                if (session.isAdmin()) {
+                    intent = new Intent(this, AdminMainActivity.class);
+                } else if (session.isStaff()) {
                     intent = new Intent(this, StaffMainActivity.class);
                 } else {
                     intent = new Intent(this, CustomerMainActivity.class);

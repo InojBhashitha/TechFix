@@ -20,6 +20,7 @@ import com.techfix.app.data.remote.ApiService;
 import com.techfix.app.data.remote.dto.ApiResponse;
 import com.techfix.app.data.remote.dto.AuthResponse;
 import com.techfix.app.data.remote.dto.LoginRequest;
+import com.techfix.app.ui.admin.AdminMainActivity;
 import com.techfix.app.ui.customer.CustomerMainActivity;
 import com.techfix.app.ui.staff.StaffMainActivity;
 import com.techfix.app.utils.SessionManager;
@@ -68,7 +69,6 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void attemptLogin() {
-        // Clear previous errors
         tilEmail.setError(null);
         tilPassword.setError(null);
         tvError.setVisibility(View.GONE);
@@ -76,7 +76,6 @@ public class LoginActivity extends AppCompatActivity {
         String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
         String password = etPassword.getText() != null ? etPassword.getText().toString().trim() : "";
 
-        // Validate
         if (TextUtils.isEmpty(email)) {
             tilEmail.setError(getString(R.string.err_empty_field));
             return;
@@ -94,10 +93,8 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        // Show loading state
         setLoading(true);
 
-        // Make API call
         ApiService api = ApiClient.getApiService();
         LoginRequest request = new LoginRequest(email, password);
 
@@ -128,7 +125,6 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void handleAuthSuccess(AuthResponse auth) {
-        // Save session
         sessionManager.saveSession(
                 auth.getToken(),
                 auth.getUserId(),
@@ -137,14 +133,15 @@ public class LoginActivity extends AppCompatActivity {
                 auth.getRole()
         );
 
-        // Set token for future API calls
         ApiClient.setAuthToken(auth.getToken());
 
         Toast.makeText(this, "Welcome back, " + auth.getFullName() + "!", Toast.LENGTH_SHORT).show();
 
-        // Route based on role
+        // Separate Routing per role
         Intent intent;
-        if ("STAFF".equals(auth.getRole()) || "ADMIN".equals(auth.getRole())) {
+        if ("ADMIN".equalsIgnoreCase(auth.getRole())) {
+            intent = new Intent(this, AdminMainActivity.class);
+        } else if ("STAFF".equalsIgnoreCase(auth.getRole())) {
             intent = new Intent(this, StaffMainActivity.class);
         } else {
             intent = new Intent(this, CustomerMainActivity.class);
