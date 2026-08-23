@@ -43,4 +43,5 @@
     <string name="branch_colombo">TechFix Colombo Branch</string>
     <string name="branch_galle">TechFix Galle Branch</string>
     <string name="label_distance">Distance: %1$.1f km</string>
+    <string name="google_maps_key" translatable="false">AIzaSyDEWgCD-yt45xhoQHlnhHg4ZoFghPokFIo</string>
 </resources>
