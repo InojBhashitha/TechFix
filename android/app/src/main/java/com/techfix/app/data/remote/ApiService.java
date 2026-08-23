@@ -105,6 +105,11 @@ public interface ApiService {
             @Body AssignTechnicianRequestDto request
     );
 
+    @POST("api/staff/bookings/{id}/auto-assign-technician")
+    Call<ApiResponse<BookingResponseDto>> autoAssignTechnician(
+            @Path("id") String id
+    );
+
     @GET("api/staff/technicians")
     Call<ApiResponse<List<TechnicianDto>>> getTechnicians(
             @Query("branchId") Long branchId,

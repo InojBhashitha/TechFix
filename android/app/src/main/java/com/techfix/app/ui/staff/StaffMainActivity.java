@@ -349,6 +349,7 @@ public class StaffMainActivity extends AppCompatActivity implements StaffRepairQ
         TextView tvDialogAssignRef = dialogView.findViewById(R.id.tvDialogAssignRef);
         Spinner spinnerTechnicians = dialogView.findViewById(R.id.spinnerTechnicians);
         EditText etAssignNotes = dialogView.findViewById(R.id.etAssignNotes);
+        MaterialButton btnAutoAssign = dialogView.findViewById(R.id.btnAutoAssign);
         MaterialButton btnCancelAssign = dialogView.findViewById(R.id.btnCancelAssign);
         MaterialButton btnSubmitAssign = dialogView.findViewById(R.id.btnSubmitAssign);
 
@@ -361,6 +362,39 @@ public class StaffMainActivity extends AppCompatActivity implements StaffRepairQ
 
         btnCancelAssign.setOnClickListener(v -> dialog.dismiss());
         btnSubmitAssign.setEnabled(false);
+
+        if (btnAutoAssign != null) {
+            btnAutoAssign.setOnClickListener(v -> {
+                btnAutoAssign.setEnabled(false);
+                btnAutoAssign.setText("Auto-Assigning...");
+
+                apiService.autoAssignTechnician(booking.getBookingReference()).enqueue(new Callback<ApiResponse<BookingResponseDto>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<BookingResponseDto>> call, Response<ApiResponse<BookingResponseDto>> response) {
+                        btnAutoAssign.setEnabled(true);
+                        btnAutoAssign.setText("⚡ Smart Auto-Assign Best Technician");
+
+                        if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                            BookingResponseDto updated = response.body().getData();
+                            String techName = updated != null && updated.getTechnicianName() != null ? updated.getTechnicianName() : "Technician";
+                            Toast.makeText(StaffMainActivity.this, "Smart auto-assigned: " + techName, Toast.LENGTH_SHORT).show();
+                            dialog.dismiss();
+                            refreshAllData();
+                        } else {
+                            String msg = (response.body() != null && response.body().getMessage() != null) ? response.body().getMessage() : "Auto-assign failed";
+                            Toast.makeText(StaffMainActivity.this, msg, Toast.LENGTH_LONG).show();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<ApiResponse<BookingResponseDto>> call, Throwable t) {
+                        btnAutoAssign.setEnabled(true);
+                        btnAutoAssign.setText("⚡ Smart Auto-Assign Best Technician");
+                        Toast.makeText(StaffMainActivity.this, "Network error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+            });
+        }
 
         apiService.getTechnicians(null, true).enqueue(new Callback<ApiResponse<List<TechnicianDto>>>() {
             @Override

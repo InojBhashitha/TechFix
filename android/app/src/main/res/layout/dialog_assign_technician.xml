@@ -80,6 +80,18 @@
                 android:textColor="@color/text_primary" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Smart Auto-Assign Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAutoAssign"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="16dp"
+            android:text="⚡ Smart Auto-Assign Best Technician"
+            android:textAllCaps="false"
+            android:textColor="@color/primary"
+            app:cornerRadius="8dp" />
+
         <!-- Action Buttons Row -->
         <LinearLayout
             android:layout_width="match_parent"
