@@ -239,6 +239,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="number"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_muted"
                         android:maxLength="19" />
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -265,6 +267,8 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:inputType="datetime"
+                            android:textColor="@color/text_primary"
+                            android:textColorHint="@color/text_muted"
                             android:maxLength="5" />
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -286,6 +290,8 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:inputType="numberPassword"
+                            android:textColor="@color/text_primary"
+                            android:textColorHint="@color/text_muted"
                             android:maxLength="4" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
