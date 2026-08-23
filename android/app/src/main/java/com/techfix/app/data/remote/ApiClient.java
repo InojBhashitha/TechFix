@@ -12,8 +12,9 @@ import java.util.concurrent.TimeUnit;
 
 public class ApiClient {
 
-    // Change this to your computer's IP when testing on a real device
-    private static final String BASE_URL = "http://10.0.2.2:8080/";
+    // For Android Emulator use: "http://10.0.2.2:8080/"
+    // For Real Physical Phone connected to same Wi-Fi use your local IP:
+    private static final String BASE_URL = "http://192.168.101.164:8080/";
 
     private static Retrofit retrofit = null;
     private static String authToken = null;
